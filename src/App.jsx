@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import CanvasPlacedBlock from './canvas-placed-block'
+import { INPUT_BLOCK_DRAG_MIME, isPlacedBlockType } from './input-blocks/drag-constants'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
 import SidePanelExpandablePanels from './side-panel-expandable-panels'
@@ -8,6 +10,7 @@ const CANVAS_SIZE = 8000
 const MINIMAP_SIZE = 180
 
 function App() {
+  const [placedBlocks, setPlacedBlocks] = useState([])
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
   const [viewport, setViewport] = useState({
     left: 0,
@@ -64,6 +67,10 @@ function App() {
       return
     }
 
+    if (event.target !== event.currentTarget) {
+      return
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId)
     dragStateRef.current = {
       pointerId: event.pointerId,
@@ -99,6 +106,45 @@ function App() {
     setIsDragging(false)
   }
 
+  const handleCanvasDragOver = (event) => {
+    const types = Array.from(event.dataTransfer.types)
+    if (!types.includes(INPUT_BLOCK_DRAG_MIME)) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleCanvasDragEnter = (event) => {
+    const types = Array.from(event.dataTransfer.types)
+    if (!types.includes(INPUT_BLOCK_DRAG_MIME)) {
+      return
+    }
+    event.preventDefault()
+  }
+
+  const handleCanvasDrop = (event) => {
+    const blockType = event.dataTransfer.getData(INPUT_BLOCK_DRAG_MIME)
+    if (!isPlacedBlockType(blockType)) {
+      return
+    }
+
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+
+    setPlacedBlocks((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: blockType,
+        x,
+        y,
+      },
+    ])
+  }
+
   return (
     <>
       <div
@@ -109,7 +155,14 @@ function App() {
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-      />
+        onDragEnter={handleCanvasDragEnter}
+        onDragOver={handleCanvasDragOver}
+        onDrop={handleCanvasDrop}
+      >
+        {placedBlocks.map((block) => (
+          <CanvasPlacedBlock key={block.id} type={block.type} left={block.x} top={block.y} />
+        ))}
+      </div>
       <MiniMap
         canvasSize={CANVAS_SIZE}
         minimapSize={MINIMAP_SIZE}
