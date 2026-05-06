@@ -16,10 +16,13 @@ export const OPERATION_BLOCK_TYPES = [
   'opMul',
 ]
 
+export const OUTPUT_BLOCK_TYPES = ['output']
+
 export const PLACED_BLOCK_TYPES = [
   ...INPUT_BLOCK_TYPES,
   ...CONVERTER_BLOCK_TYPES,
   ...OPERATION_BLOCK_TYPES,
+  ...OUTPUT_BLOCK_TYPES,
 ]
 
 export function isInputBlockType(value) {

@@ -359,10 +359,80 @@
   max-width: 92vw;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   border-radius: 8px;
+  cursor: grab;
+}
+
+.canvas-placed-block.is-dragging {
+  cursor: grabbing;
 }
 
 .canvas-placed-block .input-block {
   background: #ffffff;
+}
+
+.canvas-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.canvas-wires__edge {
+  stroke: #4b67e8;
+  stroke-width: 2;
+  fill: none;
+}
+
+.canvas-wires__rubber {
+  stroke: #4b67e8;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  opacity: 0.88;
+  fill: none;
+}
+
+.input-block--canvas-ports {
+  padding-bottom: 22px;
+}
+
+.input-block--canvas-join,
+.input-block--canvas-format,
+.input-block--canvas-op,
+.input-block--canvas-output {
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.input-block--canvas-split .notch-ports-row--interactive {
+  pointer-events: auto;
+}
+
+.notch-ports-row--interactive {
+  pointer-events: auto;
+}
+
+.notch-ports-row--spread {
+  justify-content: space-between;
+}
+
+.port-handle {
+  cursor: crosshair;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  line-height: 0;
+}
+
+.port-handle:focus-visible {
+  outline: 2px solid #2f6dff;
+  outline-offset: 2px;
+}
+
+.port-handle--input {
+  cursor: cell;
 }
 
 .input-blocks {
@@ -403,11 +473,75 @@
 }
 
 .input-block {
+  position: relative;
+  overflow: visible;
   margin: 0;
   padding: 10px;
   border: 1px solid #8d919a;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.35);
+}
+
+.input-block--with-bottom-notch {
+  padding-bottom: 22px;
+}
+
+.input-block--with-bottom-notch::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 10px;
+  border: 1px solid #8d919a;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.input-block--split-notched {
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.notch-ports-row {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.notch-ports-row.notch-ports-row--interactive {
+  pointer-events: auto;
+}
+
+.notch-ports-row--top {
+  top: -10px;
+}
+
+.notch-ports-row--bottom {
+  bottom: -10px;
+}
+
+.notch-port {
+  width: 22px;
+  height: 10px;
+  border: 1px solid #8d919a;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.notch-port--top {
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.notch-port--bottom {
+  border-top: none;
+  border-radius: 0 0 6px 6px;
 }
 
 .input-block-title {

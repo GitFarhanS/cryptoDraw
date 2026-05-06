@@ -2,13 +2,14 @@ import { useId, useState } from 'react'
 import ConverterBlocks from './converter-block/converter-blocks'
 import InputBlocks from './input-blocks/input-blocks'
 import OperationsBlocks from './operations-block/operations-blocks'
+import OutputBlock from './output-block/output-block'
 
 const PANELS = [
   'Input',
   'Converter',
   'Operations',
   'Panel 4',
-  'Panel 5',
+  'Output',
 ]
 
 function SidePanelExpandablePanels() {
@@ -48,6 +49,8 @@ function SidePanelExpandablePanels() {
               <ConverterBlocks />
             ) : title === 'Operations' ? (
               <OperationsBlocks />
+            ) : title === 'Output' ? (
+              <OutputBlock draggableToCanvas />
             ) : (
               <p className="sp-panel-expanded-placeholder">Content for {title}.</p>
             )}

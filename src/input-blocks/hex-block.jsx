@@ -1,14 +1,33 @@
 import { useId, useState } from 'react'
+import PortHandle from '../port-handle'
 import { attachPaletteDragData } from './palette-drag'
 
-function HexBlock({ draggableToCanvas = false }) {
+function HexBlock({ draggableToCanvas = false, block, onBlockPatch }) {
   const id = useId()
   const titleId = `${id}-hex-title`
-  const [value, setValue] = useState('')
+  const isCanvas = Boolean(block)
+  const [paletteValue, setPaletteValue] = useState('')
+  const value = isCanvas ? (block.text ?? '') : paletteValue
+
+  const setValue = (next) => {
+    if (isCanvas) {
+      onBlockPatch?.({ text: next })
+    } else {
+      setPaletteValue(next)
+    }
+  }
+
+  const sectionClass = [
+    'input-block',
+    isCanvas ? 'input-block--canvas-ports' : 'input-block--with-bottom-notch',
+    draggableToCanvas ? 'input-block--palette-draggable' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <section
-      className={`input-block${draggableToCanvas ? ' input-block--palette-draggable' : ''}`}
+      className={sectionClass}
       aria-labelledby={titleId}
       draggable={draggableToCanvas}
       onDragStart={draggableToCanvas ? (event) => attachPaletteDragData(event, 'hex') : undefined}
@@ -27,6 +46,11 @@ function HexBlock({ draggableToCanvas = false }) {
         spellCheck={false}
         aria-label="Hexadecimal input"
       />
+      {isCanvas ? (
+        <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
+          <PortHandle blockId={block.id} portKey="out" kind="output" interactive />
+        </div>
+      ) : null}
     </section>
   )
 }

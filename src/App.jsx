@@ -1,7 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import CanvasPlacedBlock from './canvas-placed-block'
+import CanvasWires from './canvas-wires'
 import { INPUT_BLOCK_DRAG_MIME, isPlacedBlockType } from './input-blocks/drag-constants'
+import { CanvasGraphContext } from './graph/canvas-graph-context'
+import {
+  inputPortKeysForBlock,
+  outputPortKeysForBlock,
+  portRegistryKey,
+  upsertEdgeForInputPort,
+  wouldCreateCycle,
+} from './graph/edge-types'
+import { evaluateGraph } from './graph/evaluate-graph'
+import { createPlacedBlock } from './graph/placed-block-defaults'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
 import SidePanelExpandablePanels from './side-panel-expandable-panels'
@@ -11,6 +22,8 @@ const MINIMAP_SIZE = 180
 
 function App() {
   const [placedBlocks, setPlacedBlocks] = useState([])
+  /** @type {import('./graph/edge-types.js').GraphEdge[]} */
+  const [edges, setEdges] = useState([])
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
   const [viewport, setViewport] = useState({
     left: 0,
@@ -19,6 +32,13 @@ function App() {
     height: 0,
   })
   const [isDragging, setIsDragging] = useState(false)
+  const [layoutEpoch, setLayoutEpoch] = useState(0)
+  const [wireDrag, setWireDrag] = useState(
+    /** @type {null | { pointerId: number, fromKind: 'input' | 'output', fromBlockId: string, fromPortKey: string, clientX: number, clientY: number }} */ (
+      null
+    ),
+  )
+
   const dragStateRef = useRef({
     pointerId: null,
     startX: 0,
@@ -26,6 +46,180 @@ function App() {
     startScrollX: 0,
     startScrollY: 0,
   })
+
+  const wireDragRef = useRef(wireDrag)
+  const placedBlocksRef = useRef(placedBlocks)
+
+  const canvasRef = useRef(/** @type {HTMLDivElement | null} */ (null))
+  const anchorsRef = useRef(new Map())
+
+  const bumpLayout = useCallback(() => {
+    setLayoutEpoch((n) => n + 1)
+  }, [])
+
+  const registerAnchor = useCallback(
+    (blockId, portKey, el) => {
+      const key = portRegistryKey(blockId, portKey)
+      if (el) {
+        anchorsRef.current.set(key, el)
+      } else {
+        anchorsRef.current.delete(key)
+      }
+      bumpLayout()
+    },
+    [bumpLayout],
+  )
+
+  const evaluation = useMemo(
+    () => evaluateGraph(placedBlocks, edges),
+    [placedBlocks, edges],
+  )
+
+  const patchBlock = useCallback((id, patch) => {
+    setPlacedBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+    )
+  }, [])
+
+  const movePlacedBlock = useCallback(
+    (blockId, nextX, nextY) => {
+      setPlacedBlocks((prev) =>
+        prev.map((block) =>
+          block.id === blockId
+            ? {
+                ...block,
+                x: nextX,
+                y: nextY,
+              }
+            : block,
+        ),
+      )
+      bumpLayout()
+    },
+    [bumpLayout],
+  )
+
+  const onPortPointerDown = useCallback((event, fromKind, fromBlockId, fromPortKey) => {
+    event.preventDefault()
+    setWireDrag({
+      pointerId: event.pointerId,
+      fromKind,
+      fromBlockId,
+      fromPortKey,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    })
+  }, [])
+
+  useEffect(() => {
+    wireDragRef.current = wireDrag
+  }, [wireDrag])
+
+  useEffect(() => {
+    placedBlocksRef.current = placedBlocks
+  }, [placedBlocks])
+
+  useEffect(() => {
+    if (!wireDrag) {
+      return undefined
+    }
+
+    const onMove = (e) => {
+      const cur = wireDragRef.current
+      if (!cur || e.pointerId !== cur.pointerId) {
+        return
+      }
+      setWireDrag({
+        ...cur,
+        clientX: e.clientX,
+        clientY: e.clientY,
+      })
+    }
+
+    const finish = (e) => {
+      const cur = wireDragRef.current
+      if (!cur || e.pointerId !== cur.pointerId) {
+        return
+      }
+
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      const portEl = el?.closest?.('[data-port-kind]')
+      setWireDrag(null)
+
+      if (!(portEl instanceof HTMLElement)) {
+        return
+      }
+
+      const targetKind = portEl.getAttribute('data-port-kind')
+      const targetBlockId = portEl.getAttribute('data-block-id')
+      const targetPortKey = portEl.getAttribute('data-port-key')
+      if (
+        !targetKind ||
+        (targetKind !== 'input' && targetKind !== 'output') ||
+        !targetBlockId ||
+        !targetPortKey
+      ) {
+        return
+      }
+
+      if (targetKind === cur.fromKind) {
+        return
+      }
+
+      const fromBlockId = cur.fromKind === 'output' ? cur.fromBlockId : targetBlockId
+      const fromPortKey = cur.fromKind === 'output' ? cur.fromPortKey : targetPortKey
+      const toBlockId = cur.fromKind === 'output' ? targetBlockId : cur.fromBlockId
+      const toPortKey = cur.fromKind === 'output' ? targetPortKey : cur.fromPortKey
+
+      setEdges((prevEdges) => {
+        const blocks = placedBlocksRef.current
+        const targetBlock = blocks.find((b) => b.id === toBlockId)
+        const sourceBlock = blocks.find((b) => b.id === fromBlockId)
+        if (!targetBlock || !sourceBlock) {
+          return prevEdges
+        }
+
+        const paramsFor = (b) => ({
+          blockCount: b.blockCount,
+          joinCount: b.joinCount,
+        })
+
+        const validOut = outputPortKeysForBlock(sourceBlock.type, paramsFor(sourceBlock))
+        const validIn = inputPortKeysForBlock(targetBlock.type, paramsFor(targetBlock))
+
+        if (!validOut.includes(fromPortKey) || !validIn.includes(toPortKey)) {
+          return prevEdges
+        }
+
+        const newEdge = {
+          id: crypto.randomUUID(),
+          from: { blockId: fromBlockId, portKey: fromPortKey },
+          to: { blockId: toBlockId, portKey: toPortKey },
+        }
+
+        if (
+          wouldCreateCycle(prevEdges, {
+            from: { blockId: fromBlockId },
+            to: { blockId: toBlockId },
+          })
+        ) {
+          return prevEdges
+        }
+
+        return upsertEdgeForInputPort(prevEdges, newEdge)
+      })
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+    }
+  }, [wireDrag])
 
   useEffect(() => {
     const updateViewport = () => {
@@ -35,6 +229,7 @@ function App() {
         width: window.innerWidth,
         height: window.innerHeight,
       })
+      bumpLayout()
     }
 
     updateViewport()
@@ -45,7 +240,7 @@ function App() {
       window.removeEventListener('scroll', updateViewport)
       window.removeEventListener('resize', updateViewport)
     }
-  }, [])
+  }, [bumpLayout])
 
   const canvasStyle = {
     width: `${CANVAS_SIZE}px`,
@@ -134,20 +329,28 @@ function App() {
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
 
-    setPlacedBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: blockType,
-        x,
-        y,
-      },
-    ])
+    const created = createPlacedBlock(blockType, x, y)
+    if (!created) {
+      return
+    }
+
+    setPlacedBlocks((prev) => [...prev, created])
+    bumpLayout()
   }
+
+  const graphContextValue = useMemo(
+    () => ({
+      registerAnchor,
+      onPortPointerDown,
+      wireDrag,
+    }),
+    [registerAnchor, onPortPointerDown, wireDrag],
+  )
 
   return (
     <>
       <div
+        ref={canvasRef}
         className={`grid-canvas ${isDragging ? 'is-dragging' : ''}`}
         style={canvasStyle}
         aria-label="Notebook style square grid"
@@ -159,9 +362,24 @@ function App() {
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
       >
-        {placedBlocks.map((block) => (
-          <CanvasPlacedBlock key={block.id} type={block.type} left={block.x} top={block.y} />
-        ))}
+        <CanvasGraphContext.Provider value={graphContextValue}>
+          <CanvasWires
+            edges={edges}
+            anchorsRef={anchorsRef}
+            canvasRef={canvasRef}
+            rubberBand={wireDrag}
+            layoutEpoch={layoutEpoch}
+          />
+          {placedBlocks.map((block) => (
+            <CanvasPlacedBlock
+              key={block.id}
+              block={block}
+              onMove={movePlacedBlock}
+              onPatch={patchBlock}
+              evaluation={evaluation}
+            />
+          ))}
+        </CanvasGraphContext.Provider>
       </div>
       <MiniMap
         canvasSize={CANVAS_SIZE}
