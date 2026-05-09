@@ -637,10 +637,23 @@ body[data-theme='solarized-dark'] {
   padding: 6px 10px;
   border: 1px solid var(--chip-border);
   border-radius: 8px;
-  background: var(--chip-bg);
+  background-color: var(--chip-bg);
   color: var(--chip-fg);
   font: inherit;
   font-size: 13px;
+  color-scheme: light;
+}
+
+body[data-theme='dark'] .theme-select,
+body[data-theme='high-contrast'] .theme-select,
+body[data-theme='solarized-dark'] .theme-select {
+  color-scheme: dark;
+}
+
+.theme-select option,
+.theme-select optgroup {
+  background-color: var(--panel-surface-strong);
+  color: var(--chip-fg);
 }
 
 .theme-select:focus-visible {

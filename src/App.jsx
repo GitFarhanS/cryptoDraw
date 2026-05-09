@@ -62,6 +62,19 @@ function resolveTheme(theme) {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+function resolveColorScheme(theme) {
+  const resolvedTheme = resolveTheme(theme)
+  if (
+    resolvedTheme === 'dark' ||
+    resolvedTheme === 'solarized-dark' ||
+    resolvedTheme === 'high-contrast'
+  ) {
+    return 'dark'
+  }
+
+  return 'light'
+}
+
 function App() {
   const [placedBlocks, setPlacedBlocks] = useState([])
   /** @type {import('./graph/edge-types.js').GraphEdge[]} */
@@ -102,8 +115,9 @@ function App() {
 
   useEffect(() => {
     const resolvedTheme = resolveTheme(theme)
+    const colorScheme = resolveColorScheme(theme)
     document.body.dataset.theme = resolvedTheme
-    document.body.style.colorScheme = resolvedTheme === 'light' ? 'light' : 'dark'
+    document.body.style.colorScheme = colorScheme
 
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme)
@@ -117,8 +131,9 @@ function App() {
       mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
       const handleChange = () => {
         const nextResolvedTheme = resolveTheme('system')
+        const nextColorScheme = resolveColorScheme('system')
         document.body.dataset.theme = nextResolvedTheme
-        document.body.style.colorScheme = nextResolvedTheme === 'light' ? 'light' : 'dark'
+        document.body.style.colorScheme = nextColorScheme
       }
 
       if (typeof mediaQueryList.addEventListener === 'function') {
@@ -128,21 +143,19 @@ function App() {
       }
 
       return () => {
-        if (document.body.dataset.theme === resolvedTheme) {
-          delete document.body.dataset.theme
-        }
         if (typeof mediaQueryList.removeEventListener === 'function') {
           mediaQueryList.removeEventListener('change', handleChange)
         } else {
           mediaQueryList.removeListener(handleChange)
         }
+        delete document.body.dataset.theme
+        document.body.style.colorScheme = ''
       }
     }
 
     return () => {
-      if (document.body.dataset.theme === resolvedTheme) {
-        delete document.body.dataset.theme
-      }
+      delete document.body.dataset.theme
+      document.body.style.colorScheme = ''
     }
   }, [theme])
 
