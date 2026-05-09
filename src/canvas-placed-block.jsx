@@ -39,9 +39,10 @@ const BLOCK_BY_TYPE = {
  * @param {import('./graph/placed-block-defaults.js').PlacedBlockRecord} props.block
  * @param {(id: string, x: number, y: number) => void} props.onMove
  * @param {(id: string, patch: object) => void} props.onPatch
+ * @param {(id: string, clientX: number, clientY: number) => void} [props.onOpenContextMenu]
  * @param {ReturnType<typeof import('./graph/evaluate-graph.js').evaluateGraph>} props.evaluation
  */
-function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }) {
+function CanvasPlacedBlock({ block, onMove, onPatch, onOpenContextMenu, evaluation }) {
   const graph = useCanvasGraph()
   const zoom = graph?.zoom ?? 1
   const Block = BLOCK_BY_TYPE[block.type]
@@ -96,6 +97,12 @@ function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }) {
     event.stopPropagation()
   }
 
+  const openContextMenu = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onOpenContextMenu?.(block.id, event.clientX, event.clientY)
+  }
+
   const sharedProps = {
     draggableToCanvas: false,
     block,
@@ -111,6 +118,7 @@ function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }) {
       onPointerMove={moveDrag}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onContextMenu={openContextMenu}
     >
       <Block {...sharedProps} />
     </div>

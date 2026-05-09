@@ -14,6 +14,7 @@ import {
 } from './graph/edge-types'
 import { evaluateGraph } from './graph/evaluate-graph'
 import { createPlacedBlock } from './graph/placed-block-defaults'
+import { duplicatePlacedBlock } from './graph/placed-block-actions'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
 import SidePanelExpandablePanels from './side-panel-expandable-panels'
@@ -38,6 +39,9 @@ function App() {
   })
   const [isDragging, setIsDragging] = useState(false)
   const [layoutEpoch, setLayoutEpoch] = useState(0)
+  const [blockContextMenu, setBlockContextMenu] = useState(
+    /** @type {null | { blockId: string, clientX: number, clientY: number }} */ (null),
+  )
   const [wireDrag, setWireDrag] = useState(
     /** @type {null | { pointerId: number, fromKind: 'input' | 'output', fromBlockId: string, fromPortKey: string, clientX: number, clientY: number }} */ (
       null
@@ -120,6 +124,45 @@ function App() {
       bumpLayout()
     },
     [bumpLayout],
+  )
+
+  const openBlockContextMenu = useCallback((blockId, clientX, clientY) => {
+    setBlockContextMenu({ blockId, clientX, clientY })
+  }, [])
+
+  const closeBlockContextMenu = useCallback(() => {
+    setBlockContextMenu(null)
+  }, [])
+
+  const deletePlacedBlock = useCallback(
+    (blockId) => {
+      setPlacedBlocks((prevBlocks) =>
+        prevBlocks.filter((block) => block.id !== blockId),
+      )
+      setEdges((prevEdges) =>
+        prevEdges.filter(
+          (edge) => edge.from.blockId !== blockId && edge.to.blockId !== blockId,
+        ),
+      )
+      closeBlockContextMenu()
+      bumpLayout()
+    },
+    [bumpLayout, closeBlockContextMenu],
+  )
+
+  const duplicateBlock = useCallback(
+    (blockId) => {
+      setPlacedBlocks((prevBlocks) => {
+        const source = prevBlocks.find((block) => block.id === blockId)
+        if (!source) {
+          return prevBlocks
+        }
+        return [...prevBlocks, duplicatePlacedBlock(source)]
+      })
+      closeBlockContextMenu()
+      bumpLayout()
+    },
+    [bumpLayout, closeBlockContextMenu],
   )
 
   const onPortPointerDown = useCallback((event, fromKind, fromBlockId, fromPortKey) => {
@@ -284,6 +327,36 @@ function App() {
     )
     window.scrollTo({ left, top })
   }, [])
+
+  useEffect(() => {
+    if (!blockContextMenu) {
+      return undefined
+    }
+
+    const onPointerDown = (event) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.block-context-menu')
+      ) {
+        return
+      }
+      closeBlockContextMenu()
+    }
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeBlockContextMenu()
+      }
+    }
+
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [blockContextMenu, closeBlockContextMenu])
 
   useEffect(() => {
     const onWheel = (event) => {
@@ -501,12 +574,38 @@ function App() {
                 block={block}
                 onMove={movePlacedBlock}
                 onPatch={patchBlock}
+                onOpenContextMenu={openBlockContextMenu}
                 evaluation={evaluation}
               />
             ))}
           </CanvasGraphContext.Provider>
         </div>
       </div>
+      {blockContextMenu ? (
+        <div
+          className="block-context-menu"
+          role="menu"
+          aria-label="Block actions"
+          style={{ left: blockContextMenu.clientX, top: blockContextMenu.clientY }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="block-context-menu__action"
+            onClick={() => duplicateBlock(blockContextMenu.blockId)}
+          >
+            Duplicate
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="block-context-menu__action"
+            onClick={() => deletePlacedBlock(blockContextMenu.blockId)}
+          >
+            Delete
+          </button>
+        </div>
+      ) : null}
       <MiniMap
         canvasSize={CANVAS_SIZE}
         minimapSize={MINIMAP_SIZE}
