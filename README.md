@@ -137,6 +137,8 @@ src/
 - Graph-shape changes (new block types, new ports) usually need updates in `evaluate-graph.js`, `edge-types.js`, and `flowchart-io.js` together — the tests in `src/graph/` are the easiest way to lock in the new behaviour.
 - The canvas uses CSS-driven panning/zooming; coordinates in placed blocks are in unscaled canvas space.
 
+See [`CONTRIBUTORS.md`](./CONTRIBUTORS.md) for the list of people who have helped build cryptoDrawer.
+
 ## License
 
-No license has been declared yet. If you want to reuse or adapt this code, please open an issue first.
+Released under the [MIT License](./LICENSE) — see the `LICENSE` file for the full text.
