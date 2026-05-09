@@ -409,6 +409,40 @@
   color: #8c1f1f;
 }
 
+.flowchart-io-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(21, 26, 38, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.flowchart-io-dialog {
+  width: min(540px, calc(100vw - 32px));
+  border: 1px solid #8d919a;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flowchart-io-dialog-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c2e33;
+}
+
+.flowchart-io-dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .canvas-placed-block {
   position: absolute;
   z-index: 1;
