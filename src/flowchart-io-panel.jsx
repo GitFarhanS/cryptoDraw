@@ -68,8 +68,17 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
         <p className={`flowchart-io-status flowchart-io-status--${statusKind}`}>{status}</p>
       ) : null}
       {dialog ? (
-        <div className="flowchart-io-dialog-backdrop" role="presentation">
-          <div className="flowchart-io-dialog" role="dialog" aria-modal="true">
+        <div
+          className="flowchart-io-dialog-backdrop"
+          role="presentation"
+          onClick={() => setDialog(null)}
+        >
+          <div
+            className="flowchart-io-dialog"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="flowchart-io-dialog-title">
               {dialog.mode === 'export' ? 'Copy Base64 flowchart text' : 'Paste Base64 flowchart text'}
             </h3>

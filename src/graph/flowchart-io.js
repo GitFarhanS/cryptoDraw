@@ -222,7 +222,7 @@ function base64ToUtf8(base64Text) {
 }
 
 function isValidBase64Text(value) {
-  if (!value || value.length % 4 !== 0) {
+  if (value == null || (value.length > 0 && value.length % 4 !== 0)) {
     return false
   }
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) {
