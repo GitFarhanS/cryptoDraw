@@ -1054,6 +1054,10 @@ function App() {
         bumpLayout()
     }, [bumpLayout])
 
+    const boardPasteAnchor: PasteAnchor | null = boardContextMenu
+        ? { x: boardContextMenu.canvasX, y: boardContextMenu.canvasY }
+        : null
+
     return (
         <>
             <section className="cursor-mode-menu" aria-label="Cursor mode">
@@ -1179,7 +1183,7 @@ function App() {
                     <button
                         type="button"
                         className="context-menu__action"
-                        onClick={() => pasteFromClipboard({ x: boardContextMenu.canvasX, y: boardContextMenu.canvasY })}
+                        onClick={() => boardPasteAnchor && pasteFromClipboard(boardPasteAnchor)}
                     >
                         Paste
                     </button>
