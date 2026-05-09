@@ -652,7 +652,10 @@ function App() {
             ))}
           </select>
         </section>
-        <SidePanelExpandablePanels />
+        <SidePanelExpandablePanels
+          onExportFlowchart={handleExportFlowchart}
+          onImportFlowchart={handleImportFlowchart}
+        />
       </SidePanel>
     </>
   )
