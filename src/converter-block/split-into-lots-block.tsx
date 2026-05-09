@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-split-title`
     const isCanvas = Boolean(block)

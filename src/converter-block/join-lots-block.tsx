@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-join-title`
     const isCanvas = Boolean(block)

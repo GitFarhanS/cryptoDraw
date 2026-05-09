@@ -1,4 +1,5 @@
 export type PortKind = 'input' | 'output'
+export type DataFormat = 'binary' | 'ascii' | 'hex' | 'decimal'
 
 export interface GraphEdge {
     id: string
@@ -21,10 +22,10 @@ export interface PlacedBlockRecord {
     joinCount?: number
     text?: string
     fcText?: string
-    fcInputFormat?: 'binary' | 'ascii' | 'hex' | 'decimal'
-    fcOutputFormat?: 'binary' | 'ascii' | 'hex' | 'decimal'
+    fcInputFormat?: DataFormat
+    fcOutputFormat?: DataFormat
     opDisplayMode?: 'auto' | 'manual'
-    opDisplayFormat?: 'binary' | 'ascii' | 'hex' | 'decimal'
+    opDisplayFormat?: DataFormat
     opShiftMode?: 'logical' | 'circular'
 }
 

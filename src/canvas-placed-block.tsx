@@ -39,7 +39,7 @@ interface Props {
     evaluation: any
 }
 
-function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }: Props) {
+function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }: Readonly<Props>) {
     const graph = useCanvasGraph()
     const zoom = graph?.zoom ?? 1
     const Block = BLOCK_BY_TYPE[block.type]

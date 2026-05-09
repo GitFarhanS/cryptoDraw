@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-binary-title`
     const isCanvas = Boolean(block)

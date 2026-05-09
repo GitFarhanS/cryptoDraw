@@ -22,7 +22,7 @@ function OperationBlock({
     block,
     onBlockPatch,
     evaluation,
-}: Props) {
+}: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-op-title`
     const isCanvas = Boolean(block)

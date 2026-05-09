@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function AsciiBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function AsciiBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-ascii-title`
     const isCanvas = Boolean(block)

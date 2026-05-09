@@ -7,7 +7,7 @@ interface Props {
     onNavigate: (left: number, top: number) => void
 }
 
-function MiniMap({ canvasSize, minimapSize, viewport, onNavigate }: Props) {
+function MiniMap({ canvasSize, minimapSize, viewport, onNavigate }: Readonly<Props>) {
     const [isPanning, setIsPanning] = useState(false)
     const mapRef = useRef<HTMLDivElement | null>(null)
     const activePointerIdRef = useRef<number | null>(null)

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import React, { useId, useState } from 'react'
 import ConverterBlocks from './converter-block/converter-blocks'
 import FlowchartIoPanel from './flowchart-io-panel'
 import InputBlocks from './input-blocks/input-blocks'
@@ -12,9 +12,31 @@ interface Props {
     onImportFlowchart: (base64: string) => void
 }
 
-function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Props) {
+function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Readonly<Props>) {
     const baseId = useId()
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
+
+    const renderPanelContent = (title: string) => {
+        switch (title) {
+            case 'Input':
+                return <InputBlocks />
+            case 'Converter':
+                return <ConverterBlocks />
+            case 'Operations':
+                return <OperationsBlocks />
+            case 'Flowchart':
+                return (
+                    <FlowchartIoPanel
+                        onExportFlowchart={onExportFlowchart}
+                        onImportFlowchart={onImportFlowchart}
+                    />
+                )
+            case 'Output':
+                return <OutputBlock draggableToCanvas />
+            default:
+                return <p className="sp-panel-expanded-placeholder">Content for {title}.</p>
+        }
+    }
 
     if (expandedIndex !== null) {
         const title = PANELS[expandedIndex]
@@ -26,7 +48,6 @@ function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Pro
                     id={`${baseId}-region-${expandedIndex}`}
                     className="sp-panel-expanded"
                     data-tone={expandedIndex}
-                    role="region"
                     aria-labelledby={titleId}
                 >
                     <div className="sp-panel-expanded-header">
@@ -43,22 +64,7 @@ function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Pro
                         </h2>
                     </div>
                     <div className="sp-panel-expanded-body">
-                        {title === 'Input' ? (
-                            <InputBlocks />
-                        ) : title === 'Converter' ? (
-                            <ConverterBlocks />
-                        ) : title === 'Operations' ? (
-                            <OperationsBlocks />
-                        ) : title === 'Flowchart' ? (
-                            <FlowchartIoPanel
-                                onExportFlowchart={onExportFlowchart}
-                                onImportFlowchart={onImportFlowchart}
-                            />
-                        ) : title === 'Output' ? (
-                            <OutputBlock draggableToCanvas />
-                        ) : (
-                            <p className="sp-panel-expanded-placeholder">Content for {title}.</p>
-                        )}
+                        {renderPanelContent(title)}
                     </div>
                 </section>
             </div>

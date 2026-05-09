@@ -6,8 +6,6 @@ import {
 } from '../input-blocks/drag-constants'
 import type { GraphEdge, PlacedBlockRecord } from '../types/graph'
 
-export type { GraphEdge }
-
 export function portRegistryKey(blockId: string, portKey: string) {
     return `${blockId}\0${portKey}`
 }
@@ -137,3 +135,5 @@ export function isEdgeValidForBlocks(
     const inPorts = inputPortKeysForBlock(toBlock.type, paramsFor(toBlock))
     return outPorts.includes(edge.from.portKey) && inPorts.includes(edge.to.portKey)
 }
+
+export { type GraphEdge } from '../types/graph'

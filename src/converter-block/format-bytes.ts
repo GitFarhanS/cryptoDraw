@@ -2,7 +2,7 @@ const BINARY_STRIP = /[\s_]/g
 const HEX_STRIP = /[\s:.-]/g
 
 function parseBinaryToBytes(str: string) {
-    const bits = str.replace(BINARY_STRIP, '')
+    const bits = str.replaceAll(BINARY_STRIP, '')
     if (bits.length === 0) {
         return new Uint8Array(0)
     }
@@ -22,7 +22,7 @@ function bytesToBinary(bytes: Uint8Array) {
 }
 
 function parseHexToBytes(str: string) {
-    const hex = str.replace(HEX_STRIP, '').toLowerCase()
+    const hex = str.replaceAll(HEX_STRIP, '').toLowerCase()
     if (hex.length === 0) {
         return new Uint8Array(0)
     }
@@ -70,7 +70,7 @@ function parseDecimalBytes(str: string) {
 }
 
 function bytesToDecimal(bytes: Uint8Array) {
-    return Array.from(bytes, (b) => String(b)).join(' ')
+    return Array.from(bytes, String).join(' ')
 }
 
 export const BYTE_FORMATS = ['binary', 'ascii', 'hex', 'decimal'] as const

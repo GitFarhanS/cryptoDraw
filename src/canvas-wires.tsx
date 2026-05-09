@@ -13,7 +13,7 @@ interface Props {
     zoom: number
 }
 
-function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom }: Props) {
+function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom }: Readonly<Props>) {
     const [geometry, setGeometry] = useState<{
         paths: { edge: GraphEdge; d: string }[]
         rubberPath: string | null

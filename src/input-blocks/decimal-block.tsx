@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-decimal-title`
     const isCanvas = Boolean(block)

@@ -15,10 +15,10 @@ const FORMAT_LABELS: Record<string, string> = {
     binary: 'Binary',
     ascii: 'ASCII',
     hex: 'Hex',
-    decimal: 'Decimal (bytes 0–255)',
+    decimal: 'Decimal (0–255)',
 }
 
-function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, evaluation }: Props) {
+function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, evaluation }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-fmt-title`
     const isCanvas = Boolean(block)
@@ -72,7 +72,7 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
     }
 
     const displayOut =
-        evalBytes !== undefined ? serializeBytesToFormat(outputFormat, evalBytes) : localOut
+        evalBytes === undefined ? localOut : serializeBytesToFormat(outputFormat, evalBytes)
 
     const sectionClass = [
         'input-block',
@@ -142,18 +142,22 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                     </select>
                 </div>
             </div>
-            <label className="converter-block-label" htmlFor={`${id}-in`}>
-                Input
-            </label>
-            <textarea
-                id={`${id}-in`}
-                className="input-block-field input-block-field--mono"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                rows={3}
-                spellCheck={false}
-                aria-label="Input to convert"
-            />
+            {(isCanvas || draggableToCanvas) ? null : (
+                <>
+                    <label className="converter-block-label" htmlFor={`${id}-in`}>
+                        Input
+                    </label>
+                    <textarea
+                        id={`${id}-in`}
+                        className="input-block-field input-block-field--mono"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        rows={3}
+                        spellCheck={false}
+                        aria-label="Input to convert"
+                    />
+                </>
+            )}
             {err && evalBytes === undefined ? <p className="input-block-hint">{err}</p> : null}
             <label className="converter-block-label" htmlFor={`${id}-out`}>
                 Output

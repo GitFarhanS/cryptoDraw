@@ -5,8 +5,6 @@ import {
 } from '../input-blocks/drag-constants'
 import type { PlacedBlockRecord } from '../types/graph'
 
-export type { PlacedBlockRecord }
-
 export function createPlacedBlock(type: string, x: number, y: number): PlacedBlockRecord | null {
     if (!PLACED_BLOCK_TYPES.includes(type as (typeof PLACED_BLOCK_TYPES)[number])) {
         return null
@@ -47,3 +45,5 @@ export function createPlacedBlock(type: string, x: number, y: number): PlacedBlo
 
     return base
 }
+
+export { type PlacedBlockRecord } from '../types/graph'

@@ -10,7 +10,7 @@ interface Props {
     children?: React.ReactNode
 }
 
-function PortHandle({ blockId, portKey, kind, interactive = false, className = '', children }: Props) {
+function PortHandle({ blockId, portKey, kind, interactive = false, className = '', children }: Readonly<Props>) {
     const ctx = useCanvasGraph()
     const ref = useRef<HTMLButtonElement | null>(null)
 

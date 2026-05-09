@@ -362,7 +362,6 @@ body[data-theme='solarized-dark'] {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    min-height: 0;
 }
 
 .side-panel.is-open .side-panel-toggle {
@@ -566,10 +565,6 @@ body[data-theme='solarized-dark'] {
     outline-offset: 2px;
 }
 
-.sp-panel-expanded[data-tone='3'] .sp-panel-expanded-close,
-.sp-panel-expanded[data-tone='4'] .sp-panel-expanded-close {
-    background: var(--panel-surface-soft);
-}
 
 .sp-panel-expanded-title {
     margin: 0;
@@ -995,6 +990,13 @@ body[data-theme='solarized-dark'] .theme-select {
     font-size: 13px;
     line-height: 1.45;
     resize: vertical;
+}
+
+select.input-block-field {
+    /* Allow the selected option text to wrap when the box is narrow */
+    white-space: normal;
+    line-height: 1.2;
+    min-height: 40px;
 }
 
 .input-block-field--mono {

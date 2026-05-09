@@ -97,12 +97,12 @@ function sanitizeBlocks(blocks: unknown[]) {
         const x = Number(candidate.x)
         const y = Number(candidate.y)
         if (!Number.isFinite(x) || !Number.isFinite(y)) {
-            throw new Error(`Block #${index + 1} has an invalid position.`)
+            throw new TypeError(`Block #${index + 1} has an invalid position.`)
         }
 
         const next: PlacedBlockRecord = {
             id: candidate.id,
-            type: candidate.type!,
+            type: candidate.type ?? 'binary',
             x,
             y,
         }
@@ -114,19 +114,19 @@ function sanitizeBlocks(blocks: unknown[]) {
             next.fcText = candidate.fcText
         }
         if (FORMAT_VALUES.includes(candidate.fcInputFormat as (typeof FORMAT_VALUES)[number])) {
-            next.fcInputFormat = candidate.fcInputFormat as PlacedBlockRecord['fcInputFormat']
+            next.fcInputFormat = candidate.fcInputFormat
         }
         if (FORMAT_VALUES.includes(candidate.fcOutputFormat as (typeof FORMAT_VALUES)[number])) {
-            next.fcOutputFormat = candidate.fcOutputFormat as PlacedBlockRecord['fcOutputFormat']
+            next.fcOutputFormat = candidate.fcOutputFormat
         }
-        if (OP_DISPLAY_MODES.includes(candidate.opDisplayMode as (typeof OP_DISPLAY_MODES)[number])) {
-            next.opDisplayMode = candidate.opDisplayMode as PlacedBlockRecord['opDisplayMode']
+        if (OP_DISPLAY_MODES.includes(candidate.opDisplayMode ?? 'auto')) {
+            next.opDisplayMode = candidate.opDisplayMode
         }
         if (OP_DISPLAY_FORMATS.includes(candidate.opDisplayFormat as (typeof OP_DISPLAY_FORMATS)[number])) {
-            next.opDisplayFormat = candidate.opDisplayFormat as PlacedBlockRecord['opDisplayFormat']
+            next.opDisplayFormat = candidate.opDisplayFormat
         }
-        if (OP_SHIFT_MODES.includes(candidate.opShiftMode as (typeof OP_SHIFT_MODES)[number])) {
-            next.opShiftMode = candidate.opShiftMode as PlacedBlockRecord['opShiftMode']
+        if (OP_SHIFT_MODES.includes(candidate.opShiftMode ?? 'logical')) {
+            next.opShiftMode = candidate.opShiftMode
         }
         if (Number.isFinite(Number(candidate.blockCount))) {
             next.blockCount = clampInt(candidate.blockCount, 1, 24)
@@ -221,7 +221,7 @@ function bytesToBase64(bytes: Uint8Array) {
 
     const chars = []
     for (const byte of bytes) {
-        chars.push(String.fromCharCode(byte))
+        chars.push(String.fromCodePoint(byte))
     }
     return btoa(chars.join(''))
 }
@@ -234,7 +234,7 @@ function base64ToBytes(base64Text: string) {
         return BufferCtor.from(base64Text, 'base64')
     }
     const binary = atob(base64Text)
-    return Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    return Uint8Array.from(binary, (char) => char.codePointAt(0) ?? 0)
 }
 
 function bytesToUtf8(bytes: Uint8Array) {

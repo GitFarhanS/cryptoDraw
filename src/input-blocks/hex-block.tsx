@@ -8,7 +8,7 @@ interface Props {
     onBlockPatch?: (patch: any) => void
 }
 
-function HexBlock({ draggableToCanvas = false, block, onBlockPatch }: Props) {
+function HexBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-hex-title`
     const isCanvas = Boolean(block)

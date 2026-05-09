@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import './App.scss'
 import CanvasPlacedBlock from './canvas-placed-block'
@@ -38,13 +38,13 @@ const THEMES = [
 ]
 
 function readStoredTheme() {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
         return 'system'
     }
 
     try {
-        const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
-        if (stored !== null && THEMES.some((theme) => theme.value === stored)) {
+        const stored = globalThis.window.localStorage.getItem(THEME_STORAGE_KEY)
+        if (THEMES.some((theme) => theme.value === stored)) {
             return stored
         }
     } catch {
@@ -59,11 +59,11 @@ function resolveTheme(theme: string) {
         return theme
     }
 
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
         return 'light'
     }
 
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    return globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 function resolveColorScheme(theme: string) {
@@ -93,7 +93,7 @@ function App() {
     })
     const [isDragging, setIsDragging] = useState(false)
     const [layoutEpoch, setLayoutEpoch] = useState(0)
-    const [wireDrag, setWireDrag] = useState<null | any>(null)
+    const [wireDrag, setWireDrag] = useState<any>(null)
 
     const dragStateRef = useRef<any>({
         pointerId: null,
@@ -119,15 +119,15 @@ function App() {
         document.body.style.colorScheme = colorScheme
 
         try {
-            window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+            globalThis.localStorage.setItem(THEME_STORAGE_KEY, theme)
         } catch {
             // Ignore storage failures; the selected theme still applies for this session.
         }
 
         let mediaQueryList: MediaQueryList | undefined
 
-        if (theme === 'system' && typeof window !== 'undefined') {
-            mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
+        if (theme === 'system' && globalThis.window !== undefined) {
+            mediaQueryList = globalThis.window.matchMedia('(prefers-color-scheme: dark)')
             const handleChange = () => {
                 const nextResolvedTheme = resolveTheme('system')
                 const nextColorScheme = resolveColorScheme('system')
@@ -266,9 +266,9 @@ function App() {
                 return
             }
 
-            const targetKind = portEl.getAttribute('data-port-kind')
-            const targetBlockId = portEl.getAttribute('data-block-id')
-            const targetPortKey = portEl.getAttribute('data-port-key')
+            const targetKind = portEl.dataset.portKind
+            const targetBlockId = portEl.dataset.blockId
+            const targetPortKey = portEl.dataset.portKey
             if (
                 !targetKind ||
                 (targetKind !== 'input' && targetKind !== 'output') ||
@@ -326,14 +326,14 @@ function App() {
             })
         }
 
-        window.addEventListener('pointermove', onMove as any)
-        window.addEventListener('pointerup', finish as any)
-        window.addEventListener('pointercancel', finish as any)
+        globalThis.window.addEventListener('pointermove', onMove as any)
+        globalThis.window.addEventListener('pointerup', finish as any)
+        globalThis.window.addEventListener('pointercancel', finish as any)
 
         return () => {
-            window.removeEventListener('pointermove', onMove as any)
-            window.removeEventListener('pointerup', finish as any)
-            window.removeEventListener('pointercancel', finish as any)
+            globalThis.window.removeEventListener('pointermove', onMove as any)
+            globalThis.window.removeEventListener('pointerup', finish as any)
+            globalThis.window.removeEventListener('pointercancel', finish as any)
         }
     }, [wireDrag])
 
@@ -449,7 +449,7 @@ function App() {
         })
     }, [])
 
-    const outerExtentStyle = useMemo<CSSProperties>(
+    const outerExtentStyle = useMemo(
         () => ({
             position: 'relative',
             width: CANVAS_SIZE * zoom,
@@ -458,7 +458,7 @@ function App() {
         [zoom],
     )
 
-    const innerCanvasStyle = useMemo<CSSProperties>(
+    const innerCanvasStyle = useMemo(
         () => ({
             position: 'absolute',
             left: 0,

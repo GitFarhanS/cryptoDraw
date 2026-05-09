@@ -10,7 +10,7 @@ interface Props {
     evaluation?: any
 }
 
-function OutputBlock({ draggableToCanvas = false, block, evaluation }: Props) {
+function OutputBlock({ draggableToCanvas = false, block, evaluation }: Readonly<Props>) {
     const id = useId()
     const titleId = `${id}-output-title`
     const isCanvas = Boolean(block)
@@ -69,9 +69,9 @@ function OutputBlock({ draggableToCanvas = false, block, evaluation }: Props) {
                         spellCheck={false}
                         aria-label="Output from wiring"
                     />
-                    {!hasWiredInput ? (
+                    {hasWiredInput ? null : (
                         <p className="input-block-hint">No wired input yet. Connect a source block to in.</p>
-                    ) : null}
+                    )}
                 </>
             ) : null}
         </section>

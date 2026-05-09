@@ -5,7 +5,7 @@ interface Props {
     onImportFlowchart: (base64: string) => void
 }
 
-function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Props) {
+function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Readonly<Props>) {
     const dialogTitleId = useId()
     const [status, setStatus] = useState('')
     const [statusKind, setStatusKind] = useState<'neutral' | 'success' | 'error'>('neutral')
@@ -84,17 +84,18 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Props) {
                 <p className={`flowchart-io-status flowchart-io-status--${statusKind}`}>{status}</p>
             ) : null}
             {dialog ? (
-                <div
-                    className="flowchart-io-dialog-backdrop"
-                    role="presentation"
-                    onClick={closeDialog}
-                >
-                    <div
+                <div className="flowchart-io-dialog-wrapper">
+                    <button
+                        type="button"
+                        className="flowchart-io-dialog-backdrop"
+                        aria-label="Close dialog"
+                        onClick={closeDialog}
+                    />
+                    <dialog
                         className="flowchart-io-dialog"
-                        role="dialog"
                         aria-modal="true"
                         aria-labelledby={dialogTitleId}
-                        onClick={(event) => event.stopPropagation()}
+
                     >
                         <h3 id={dialogTitleId} className="flowchart-io-dialog-title">
                             {dialog.mode === 'export' ? 'Copy Base64 flowchart text' : 'Paste Base64 flowchart text'}
@@ -122,7 +123,7 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Props) {
                                 Close
                             </button>
                         </div>
-                    </div>
+                    </dialog>
                 </div>
             ) : null}
         </div>

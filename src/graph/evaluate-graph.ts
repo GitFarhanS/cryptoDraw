@@ -101,8 +101,8 @@ export function bytesToUintBE(bytes: Uint8Array) {
         return 0
     }
     let n = 0
-    for (let i = 0; i < bytes.length; i++) {
-        n = (n << 8) | bytes[i]
+    for (const element of bytes) {
+        n = (n << 8) | element
     }
     return n >>> 0
 }
@@ -276,7 +276,7 @@ export function evaluateGraph(placedBlocks: PlacedBlockRecord[], edges: GraphEdg
             try {
                 const fmt = normalizeInputFormat(type)
                 const bytes = raw.trim() === '' ? EMPTY : parseBytesFromFormat(fmt, raw)
-                const bitLength = fmt === 'binary' ? raw.replace(BINARY_STRIP, '').length : bytes.length * 8
+                const bitLength = fmt === 'binary' ? raw.replaceAll(BINARY_STRIP, '').length : bytes.length * 8
                 setPort(blockId, 'out', bytes, {
                     format: fmt,
                     bitLength,
@@ -372,7 +372,7 @@ export function evaluateGraph(placedBlocks: PlacedBlockRecord[], edges: GraphEdg
                 block.opDisplayMode ?? 'auto',
                 block.opDisplayFormat ?? 'hex',
             )
-            let out = 0
+            let out: number
             switch (type) {
                 case 'opXor':
                     out = (a ^ b) >>> 0
