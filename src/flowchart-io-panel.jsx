@@ -5,11 +5,13 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
   const [status, setStatus] = useState('')
   const [statusKind, setStatusKind] = useState('neutral')
   const [dialog, setDialog] = useState(null)
+  const [copyConfirmed, setCopyConfirmed] = useState(false)
 
   const exportFlowchart = () => {
     try {
       const base64 = onExportFlowchart()
       setDialog({ mode: 'export', value: base64 })
+      setCopyConfirmed(false)
       setStatus('Base64 flowchart text generated.')
       setStatusKind('success')
     } catch {
@@ -20,6 +22,7 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
 
   const openImportDialog = () => {
     setDialog({ mode: 'import', value: '' })
+    setCopyConfirmed(false)
   }
 
   const copyBase64 = async () => {
@@ -28,12 +31,19 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
     }
     try {
       await navigator.clipboard.writeText(dialog.value)
+      setCopyConfirmed(true)
       setStatus('Base64 flowchart text copied.')
       setStatusKind('success')
     } catch {
+      setCopyConfirmed(false)
       setStatus('Copy failed. Please copy manually from the text box.')
       setStatusKind('error')
     }
+  }
+
+  const closeDialog = () => {
+    setDialog(null)
+    setCopyConfirmed(false)
   }
 
   const importFlowchart = () => {
@@ -72,7 +82,7 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
         <div
           className="flowchart-io-dialog-backdrop"
           role="presentation"
-          onClick={() => setDialog(null)}
+          onClick={closeDialog}
         >
           <div
             className="flowchart-io-dialog"
@@ -96,14 +106,14 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
             <div className="flowchart-io-dialog-actions">
               {dialog.mode === 'export' ? (
                 <button type="button" className="flowchart-io-button" onClick={copyBase64}>
-                  Copy
+                  {copyConfirmed ? 'Copied' : 'Copy'}
                 </button>
               ) : (
                 <button type="button" className="flowchart-io-button" onClick={importFlowchart}>
                   Import
                 </button>
               )}
-              <button type="button" className="flowchart-io-button" onClick={() => setDialog(null)}>
+              <button type="button" className="flowchart-io-button" onClick={closeDialog}>
                 Close
               </button>
             </div>

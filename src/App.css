@@ -443,6 +443,23 @@
   gap: 8px;
 }
 
+.flowchart-io-dialog .input-block-field {
+  color: #141821;
+  background: #ffffff;
+}
+
+.flowchart-io-dialog .flowchart-io-button {
+  background: #eef2f8;
+  color: #12151c;
+  border-color: #5f6470;
+  text-align: center;
+  font-weight: 600;
+}
+
+.flowchart-io-dialog .flowchart-io-button:hover {
+  background: #e4e9f2;
+}
+
 .canvas-placed-block {
   position: absolute;
   z-index: 1;
