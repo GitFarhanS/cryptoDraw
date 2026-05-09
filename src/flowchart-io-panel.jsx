@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
+  const dialogTitleId = useId()
   const [status, setStatus] = useState('')
   const [statusKind, setStatusKind] = useState('neutral')
   const [dialog, setDialog] = useState(null)
@@ -77,9 +78,10 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
             className="flowchart-io-dialog"
             role="dialog"
             aria-modal="true"
+            aria-labelledby={dialogTitleId}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="flowchart-io-dialog-title">
+            <h3 id={dialogTitleId} className="flowchart-io-dialog-title">
               {dialog.mode === 'export' ? 'Copy Base64 flowchart text' : 'Paste Base64 flowchart text'}
             </h3>
             <textarea
