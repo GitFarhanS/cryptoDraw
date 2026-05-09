@@ -1,6 +1,6 @@
 # cryptoDrawer
 
-A visual, node-based playground for exploring how data is encoded, transformed, and combined at the byte and bit level. Drag blocks onto an infinite canvas, wire them together, and watch values flow through the graph in real time.
+A visual, node-based playground for exploring how data is encoded, transformed, and combined at the byte and bit level. Drag blocks onto an canvas, wire them together, and watch values flow through the graph in real time.
 
 **Live demo:** [gitfarhans.github.io/cryptoDraw](https://gitfarhans.github.io/cryptoDraw/)
 
@@ -12,7 +12,7 @@ It is a learning and tinkering tool, not a production cryptography library: usef
 
 ## Features
 
-- **Infinite, pannable, zoomable canvas** with a live mini-map for navigation.
+- **Pannable, zoomable canvas** with a live mini-map for navigation.
 - **Drag-and-drop palette** organized into expandable side-panel sections (Input, Converter, Operations, Flowchart, Output).
 - **Bezier wires** between typed input/output ports, with cycle detection to prevent invalid graphs.
 - **Live evaluation**: every edit re-runs the graph and updates downstream blocks immediately.
@@ -78,13 +78,13 @@ The graph evaluator and flowchart import/export are pure JS modules under `src/g
 
 ## Getting started
 
-Requires Node.js 22+ and npm.
+Requires Node.js 22+ and pnpm.
 
 ```bash
 git clone https://github.com/GitFarhanS/cryptoDraw.git
 cd cryptoDraw
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 The dev server prints a local URL (typically `http://localhost:5173/cryptoDraw/`).
@@ -93,12 +93,12 @@ The dev server prints a local URL (typically `http://localhost:5173/cryptoDraw/`
 
 | Command           | What it does                                              |
 | ----------------- | --------------------------------------------------------- |
-| `npm run dev`     | Start the Vite dev server with HMR.                       |
-| `npm run build`   | Produce a production build in `dist/`.                    |
-| `npm run preview` | Serve the production build locally for a final smoke test.|
-| `npm run lint`    | Run ESLint over the project.                              |
-| `npm test`        | Run the Vitest unit-test suite once.                      |
-| `npm run deploy`  | Build and publish `dist/` to the `gh-pages` branch.       |
+| `pnpm run dev`     | Start the Vite dev server with HMR.                       |
+| `pnpm run build`   | Produce a production build in `dist/`.                    |
+| `pnpm run preview` | Serve the production build locally for a final smoke test.|
+| `pnpm run lint`    | Run ESLint over the project.                              |
+| `pnpm test`        | Run the Vitest unit-test suite once.                      |
+| `pnpm run deploy`  | Build and publish `dist/` to the `gh-pages` branch.       |
 
 ## Deployment
 
@@ -133,7 +133,7 @@ src/
 
 ## Contributing / development notes
 
-- Run `npm run lint` and `npm test` before opening a PR.
+- Run `pnpm run lint` and `pnpm test` before opening a PR.
 - Graph-shape changes (new block types, new ports) usually need updates in `evaluate-graph.js`, `edge-types.js`, and `flowchart-io.js` together — the tests in `src/graph/` are the easiest way to lock in the new behaviour.
 - The canvas uses CSS-driven panning/zooming; coordinates in placed blocks are in unscaled canvas space.
 
