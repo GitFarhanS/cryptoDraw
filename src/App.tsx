@@ -209,6 +209,18 @@ function App() {
     )
 
     const evaluation = useMemo(() => evaluateGraph(placedBlocks, edges), [placedBlocks, edges])
+    const selectedPlacedBlockIds = useMemo(() => {
+        const existingIds = new Set(placedBlocks.map((block) => block.id))
+        return selectedBlockIds.filter((id) => existingIds.has(id))
+    }, [placedBlocks, selectedBlockIds])
+    const activeBlockContextMenu = useMemo(() => {
+        if (!blockContextMenu) {
+            return null
+        }
+        return placedBlocks.some((block) => block.id === blockContextMenu.blockId)
+            ? blockContextMenu
+            : null
+    }, [blockContextMenu, placedBlocks])
 
     useEffect(() => {
         if (!import.meta.env.DEV) {
@@ -516,27 +528,18 @@ function App() {
 
     useEffect(() => {
         placedBlocksRef.current = placedBlocks
-
-        setSelectedBlockIds((prev) => {
-            const existingIds = new Set(placedBlocks.map((block) => block.id))
-            return prev.filter((id) => existingIds.has(id))
-        })
-
-        if (blockContextMenu && !placedBlocks.some((block) => block.id === blockContextMenu.blockId)) {
-            closeBlockContextMenu()
-        }
     }, [placedBlocks])
 
     useEffect(() => {
-        selectedBlockIdsRef.current = selectedBlockIds
-    }, [selectedBlockIds])
+        selectedBlockIdsRef.current = selectedPlacedBlockIds
+    }, [selectedPlacedBlockIds])
 
     useEffect(() => {
         edgesRef.current = edges
     }, [edges])
 
     useEffect(() => {
-        if (!blockContextMenu) {
+        if (!activeBlockContextMenu) {
             return undefined
         }
 
@@ -564,7 +567,7 @@ function App() {
             globalThis.window.removeEventListener('pointerdown', onPointerDown)
             globalThis.window.removeEventListener('keydown', onKeyDown)
         }
-    }, [blockContextMenu, closeBlockContextMenu])
+    }, [activeBlockContextMenu, closeBlockContextMenu])
 
     const handleBlockContextMenuKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
@@ -1054,7 +1057,7 @@ function App() {
                                 block={block}
                                 onMove={movePlacedBlock}
                                 onPatch={patchBlock}
-                                selected={selectedBlockIds.includes(block.id)}
+                                selected={selectedPlacedBlockIds.includes(block.id)}
                                 onSelect={handleSelectBlock}
                                 onOpenContextMenu={openBlockContextMenu}
                                 onRegisterElement={registerBlockElement}
@@ -1075,27 +1078,27 @@ function App() {
                     </CanvasGraphContext.Provider>
                 </div>
             </div>
-            {blockContextMenu ? (
+            {activeBlockContextMenu ? (
                 <div
                     ref={blockContextMenuRef}
                     className="block-context-menu"
                     role="menu"
                     tabIndex={-1}
                     aria-label="Block actions"
-                    style={{ left: blockContextMenu.clientX, top: blockContextMenu.clientY }}
+                    style={{ left: activeBlockContextMenu.clientX, top: activeBlockContextMenu.clientY }}
                     onKeyDown={handleBlockContextMenuKeyDown}
                 >
                     <button
                         type="button"
                         className="block-context-menu__action"
-                        onClick={() => duplicateSelectedBlocks(blockContextMenu.blockId)}
+                        onClick={() => duplicateSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Duplicate
                     </button>
                     <button
                         type="button"
                         className="block-context-menu__action"
-                        onClick={() => deleteSelectedBlocks(blockContextMenu.blockId)}
+                        onClick={() => deleteSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Delete
                     </button>

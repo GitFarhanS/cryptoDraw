@@ -1,6 +1,6 @@
 import type { GraphEdge, PlacedBlockRecord } from '../types/graph'
 
-interface DuplicateOptions {
+interface DuplicatePlacedBlockOptions {
     dx?: number
     dy?: number
     idFactory?: () => string
@@ -8,10 +8,9 @@ interface DuplicateOptions {
 
 export function duplicatePlacedBlock(
     block: PlacedBlockRecord,
-    options: DuplicateOptions = {},
-): PlacedBlockRecord {
+    options: DuplicatePlacedBlockOptions = {},
+) {
     const { dx = 24, dy = 24, idFactory = () => crypto.randomUUID() } = options
-
     return {
         ...block,
         id: idFactory(),
