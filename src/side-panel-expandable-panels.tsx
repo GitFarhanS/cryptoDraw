@@ -10,9 +10,10 @@ const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Flowchart']
 interface Props {
     onExportFlowchart: () => string
     onImportFlowchart: (base64: string) => void
+    onClearFlowchart: () => void
 }
 
-function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Readonly<Props>) {
+function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart, onClearFlowchart }: Readonly<Props>) {
     const baseId = useId()
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
 
@@ -29,6 +30,7 @@ function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }: Rea
                     <FlowchartIoPanel
                         onExportFlowchart={onExportFlowchart}
                         onImportFlowchart={onImportFlowchart}
+                        onClearFlowchart={onClearFlowchart}
                     />
                 )
             case 'Output':

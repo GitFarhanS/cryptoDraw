@@ -3,9 +3,10 @@ import { useId, useState } from 'react'
 interface Props {
     onExportFlowchart: () => string
     onImportFlowchart: (base64: string) => void
+    onClearFlowchart: () => void
 }
 
-function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Readonly<Props>) {
+function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart, onClearFlowchart }: Readonly<Props>) {
     const dialogTitleId = useId()
     const [status, setStatus] = useState('')
     const [statusKind, setStatusKind] = useState<'neutral' | 'success' | 'error'>('neutral')
@@ -78,6 +79,9 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }: Readonly<Pro
                 </button>
                 <button type="button" className="flowchart-io-button" onClick={openImportDialog}>
                     Import from Base64
+                </button>
+                <button type="button" className="flowchart-io-button" onClick={() => { onClearFlowchart(); setStatus('Flowchart cleared.'); setStatusKind('success') }}>
+                    Clear flowchart
                 </button>
             </div>
             {status ? (

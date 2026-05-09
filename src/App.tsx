@@ -21,7 +21,6 @@ import { evaluateGraph } from './graph/evaluate-graph'
 import {
     parseFlowchartFromBase64,
     serializeFlowchartToBase64,
-    serializeFlowchart,
     parseFlowchartFromText,
 } from './graph/flowchart-io'
 import {
@@ -40,7 +39,10 @@ const MAX_ZOOM = 3
 const ZOOM_WHEEL_SENSITIVITY = 0.0018
 const THEME_STORAGE_KEY = 'cryptoDraw.theme'
 const CANVAS_STATE_STORAGE_KEY = 'cryptoDraw.canvasState'
+const CONSENT_KEY = 'cryptoDraw.cookie-consent'
 const MIN_MARQUEE_SIZE = 4
+const PASTE_STEP = 48
+const PASTE_WRAP = 6
 type PasteAnchor = { x: number; y: number }
 const THEMES = [
     { value: 'system', label: 'System' },
@@ -62,7 +64,15 @@ function loadCanvasState() {
             return { placedBlocks: [], edges: [] }
         }
 
-        const parsed = parseFlowchartFromText(stored)
+        // New format: deflate-compressed + base64 payload.
+        // Fallback keeps compatibility with older plain JSON saves.
+        let parsed
+        try {
+            parsed = parseFlowchartFromBase64(stored)
+        } catch {
+            parsed = parseFlowchartFromText(stored)
+        }
+
         return {
             placedBlocks: parsed.placedBlocks,
             edges: parsed.edges,
@@ -79,7 +89,7 @@ function saveCanvasState(placedBlocks: any[], edges: any[]) {
     }
 
     try {
-        const serialized = serializeFlowchart(placedBlocks, edges)
+        const serialized = serializeFlowchartToBase64(placedBlocks, edges)
         globalThis.window.localStorage.setItem(CANVAS_STATE_STORAGE_KEY, serialized)
     } catch (error) {
         console.warn('Failed to save canvas state to localStorage:', error)
@@ -130,6 +140,8 @@ function resolveColorScheme(theme: string) {
 
 function App() {
     const initialCanvasState = loadCanvasState()
+    const [showConsent, setShowConsent] = useState(false)
+
     const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks)
     const [edges, setEdges] = useState<any[]>(initialCanvasState.edges)
     const [sidePanelOpen, setSidePanelOpen] = useState(false)
@@ -195,13 +207,41 @@ function App() {
     const didInitialScrollRef = useRef(false)
     const anchorsRef = useRef(new Map())
     const pasteOffsetCounterRef = useRef(0)
+    const lastClipboardRef = useRef<string | null>(null)
+    const anchorPhaseRef = useRef<'center' | 'top-left' | 'left-middle'>('center')
 
     // Disable browser's automatic scroll restoration to allow manual control
     useEffect(() => {
         if (globalThis.window) {
             globalThis.window.history.scrollRestoration = 'manual'
         }
+
+        const localConsent = globalThis.localStorage.getItem(CONSENT_KEY)
+        const sessionConsent = globalThis.sessionStorage.getItem(CONSENT_KEY)
+
+        if (localConsent !== 'accepted' && sessionConsent !== 'accepted') {
+            setShowConsent(true)
+        }
     }, [])
+
+    const handleAccept = () => {
+        // Persist in both stores to support existing checks and session-based inspection.
+        globalThis.localStorage.setItem(CONSENT_KEY, 'accepted')
+        globalThis.sessionStorage.setItem(CONSENT_KEY, 'accepted')
+        setShowConsent(false)
+    }
+
+    const handleReject = () => {
+        // Try going back if possible
+        if (globalThis.history.length > 1) {
+            globalThis.history.back()
+            return
+        }
+
+        // Fallback redirect
+        globalThis.location.href = 'https://google.com'
+    }
+
 
     useEffect(() => {
         const resolvedTheme = resolveTheme(theme)
@@ -355,7 +395,9 @@ function App() {
     }, [])
 
     const closeContextMenus = useCallback(() => {
-        pasteOffsetCounterRef.current = 0
+        // Do not reset paste offset here; keep offsets across menu closes so
+        // repeated pastes increment as expected. The counter is reset when
+        // clipboard content changes via `lastClipboardRef`.
         setBlockContextMenu(null)
         setBoardContextMenu(null)
     }, [])
@@ -429,8 +471,8 @@ function App() {
             const newId = crypto.randomUUID()
             idMap.set(block.id, newId)
             return duplicatePlacedBlock(block, {
-                dx: 24 * (index + 1),
-                dy: 24 * (index + 1),
+                dx: PASTE_STEP * (index + 1),
+                dy: PASTE_STEP * (index + 1),
                 idFactory: () => newId,
             })
         })
@@ -511,6 +553,12 @@ function App() {
             if (!text) {
                 return false
             }
+            // Reset offset counter when clipboard content changes so
+            // the first paste of new content has zero offset.
+            if (lastClipboardRef.current !== text) {
+                pasteOffsetCounterRef.current = 0
+                lastClipboardRef.current = text
+            }
             const parsed = parseFlowchartFromBase64(text)
             if (!parsed.placedBlocks.length) {
                 return false
@@ -519,25 +567,68 @@ function App() {
             const sourceLeft = Math.min(...parsed.placedBlocks.map((block: any) => block.x))
             const sourceTop = Math.min(...parsed.placedBlocks.map((block: any) => block.y))
 
-            // Determine paste anchor: use provided target or center of current viewport
-            const z = zoomRef.current
-            const anchor = target
-                ? { x: target.x, y: target.y }
-                : {
-                    x: (window.scrollX + window.innerWidth / 2) / z,
-                    y: (window.scrollY + window.innerHeight / 2) / z,
-                }
+            // Compute source bounds
+            const sourceRight = Math.max(...parsed.placedBlocks.map((block: any) => block.x))
+            const sourceBottom = Math.max(...parsed.placedBlocks.map((block: any) => block.y))
+            const sourceWidth = sourceRight - sourceLeft
+            const sourceHeight = sourceBottom - sourceTop
 
-            // Increment once per paste operation so repeated pastes offset gradually
-            const pasteOffset = 24 * (++pasteOffsetCounterRef.current)
+            // Decide anchor based on phase and overflow. If `target` is provided use it.
+            const z = zoomRef.current
+            let phase = anchorPhaseRef.current
+            let anchor: PasteAnchor = target
+                ? { x: target.x, y: target.y }
+                : phase === 'center'
+                    ? { x: (window.scrollX + window.innerWidth / 2) / z, y: (window.scrollY + window.innerHeight / 2) / z }
+                    : phase === 'top-left'
+                        ? { x: viewport.left, y: viewport.top }
+                        : { x: viewport.left, y: viewport.top + viewport.height / 2 }
+
+            // Compute grid position
+            let n = pasteOffsetCounterRef.current
+            let col = Math.floor(n / PASTE_WRAP)
+            let row = n % PASTE_WRAP
+            let pasteOffsetX = col * PASTE_STEP
+            let pasteOffsetY = row * PASTE_STEP
+
+            // Check if the computed placement would overflow the viewport to the right
+            const viewportRight = viewport.left + viewport.width
+            const viewportBottom = viewport.top + viewport.height
+            const projectedMaxX = anchor.x + sourceWidth + pasteOffsetX
+            const projectedMaxY = anchor.y + sourceHeight + pasteOffsetY
+
+            if (!target && phase === 'center' && projectedMaxX > viewportRight) {
+                // switch to top-left and restart grid
+                phase = 'top-left'
+                anchorPhaseRef.current = phase
+                anchor = { x: viewport.left, y: viewport.top }
+                n = 0
+                col = 0
+                row = 0
+                pasteOffsetX = 0
+                pasteOffsetY = 0
+            } else if (!target && phase === 'top-left' && projectedMaxY > viewportBottom) {
+                // switch to left-middle and restart grid
+                phase = 'left-middle'
+                anchorPhaseRef.current = phase
+                anchor = { x: viewport.left, y: viewport.top + viewport.height / 2 }
+                n = 0
+                col = 0
+                row = 0
+                pasteOffsetX = 0
+                pasteOffsetY = 0
+            }
+
+            // Finally bump counter for this paste
+            pasteOffsetCounterRef.current = n + 1
 
             const idMap = new Map<string, string>()
             const duplicated = parsed.placedBlocks.map((block: any) => {
                 const newId = crypto.randomUUID()
                 idMap.set(block.id, newId)
 
-                const placedX = anchor.x + (block.x - sourceLeft) + pasteOffset
-                const placedY = anchor.y + (block.y - sourceTop) + pasteOffset
+                const placedX = anchor.x + (block.x - sourceLeft) + pasteOffsetX
+                const placedY = anchor.y + (block.y - sourceTop) + pasteOffsetY
 
                 return {
                     ...block,
@@ -568,7 +659,7 @@ function App() {
             // ignore parse/clipboard errors
             return false
         }
-    }, [bumpLayout, closeContextMenus])
+    }, [bumpLayout, closeContextMenus, viewport])
 
     useEffect(() => {
         const isInteractive = (el: Element | null) =>
@@ -898,6 +989,13 @@ function App() {
         }
     }, [bumpLayout, zoom])
 
+    // Reset paste offset counter when the viewport changes so pastes from a
+    // new view start at zero offset.
+    useEffect(() => {
+        pasteOffsetCounterRef.current = 0
+        anchorPhaseRef.current = 'center'
+    }, [viewport.left, viewport.top])
+
     useEffect(() => {
         if (didInitialScrollRef.current) {
             return
@@ -1208,6 +1306,20 @@ function App() {
         scrollToBlocks(parsed.placedBlocks)
     }, [bumpLayout, scrollToBlocks])
 
+    const handleClearFlowchart = useCallback(() => {
+        setPlacedBlocks([])
+        setEdges([])
+        setSelectedBlockIds([])
+        bumpLayout()
+        // center view on canvas
+        const z = zoomRef.current
+        const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
+        const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
+        const left = Math.min(Math.max(0, (CANVAS_SIZE * z - window.innerWidth) / 2), maxScrollLeft)
+        const top = Math.min(Math.max(0, (CANVAS_SIZE * z - window.innerHeight) / 2), maxScrollTop)
+        window.scrollTo({ left, top })
+    }, [bumpLayout])
+
     return (
         <>
             <section className="cursor-mode-menu" aria-label="Cursor mode">
@@ -1380,9 +1492,33 @@ function App() {
                 <SidePanelExpandablePanels
                     onExportFlowchart={handleExportFlowchart}
                     onImportFlowchart={handleImportFlowchart}
+                    onClearFlowchart={handleClearFlowchart}
                 />
             </SidePanel>
+            {showConsent && (
+                <div className="cookie-modal-overlay">
+                    <div className="cookie-modal">
+                        <h2>Cookie Consent</h2>
+
+                        <p>
+                            This website only uses essential functional cookies
+                            required for the site to work properly.
+                        </p>
+
+                        <div className="cookie-modal-actions">
+                            <button onClick={handleAccept}>
+                                Fine
+                            </button>
+
+                            <button onClick={handleReject}>
+                                Leave Site
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
+
     )
 }
 
