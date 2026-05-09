@@ -1,0 +1,16 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: auto;
+    background: var(--app-bg);
+    color: var(--app-fg);
+}
+
+#root {
+    width: fit-content;
+    min-width: 100vw;
+    min-height: 100vh;
+}
