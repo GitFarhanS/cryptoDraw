@@ -35,6 +35,7 @@ const MAX_ZOOM = 3
 const ZOOM_WHEEL_SENSITIVITY = 0.0018
 const THEME_STORAGE_KEY = 'cryptoDraw.theme'
 const MIN_MARQUEE_SIZE = 4
+type PasteAnchor = { x: number, y: number }
 const THEMES = [
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Light' },
@@ -418,7 +419,7 @@ function App() {
         closeContextMenus()
     }, [closeContextMenus, copyBlocks])
 
-    const pasteFromClipboard = useCallback(async (pasteAnchor?: { x: number, y: number }) => {
+    const pasteFromClipboard = useCallback(async (pasteAnchor?: PasteAnchor) => {
         try {
             const text = await navigator.clipboard.readText()
             if (!text) return
