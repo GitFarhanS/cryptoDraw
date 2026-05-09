@@ -475,12 +475,10 @@ function App() {
     const content = serializeFlowchart(placedBlocks, edges)
     const blob = new Blob([content], { type: 'application/json' })
     const href = URL.createObjectURL(blob)
+    const timestamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-')
     const anchor = document.createElement('a')
     anchor.href = href
-    anchor.download = `cryptodraw-flowchart-${new Date()
-      .toISOString()
-      .replaceAll(':', '-')
-      .replaceAll('.', '-')}.json`
+    anchor.download = `cryptodraw-flowchart-${timestamp}.json`
     document.body.append(anchor)
     anchor.click()
     anchor.remove()

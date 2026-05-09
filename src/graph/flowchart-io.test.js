@@ -50,5 +50,28 @@ describe('flowchart import/export', () => {
         }),
       ),
     ).toThrow('unknown type')
+
+    expect(() =>
+      parseFlowchartFromText(
+        JSON.stringify({
+          placedBlocks: [
+            { id: 'same', type: 'ascii', x: 0, y: 0, text: 'A' },
+            { id: 'same', type: 'hex', x: 1, y: 1, text: '41' },
+          ],
+          edges: [],
+        }),
+      ),
+    ).toThrow('duplicated')
+
+    expect(() =>
+      parseFlowchartFromText(
+        JSON.stringify({
+          placedBlocks: [{ id: 'a', type: 'ascii', x: 0, y: 0, text: 'A' }],
+          edges: [
+            { id: 'e1', from: { blockId: 'missing', portKey: 'out' }, to: { blockId: 'a', portKey: 'in' } },
+          ],
+        }),
+      ),
+    ).toThrow('references missing blocks')
   })
 })
