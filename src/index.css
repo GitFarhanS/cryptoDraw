@@ -5,6 +5,8 @@
 body {
   margin: 0;
   overflow: auto;
+  background: var(--app-bg);
+  color: var(--app-fg);
 }
 
 #root {

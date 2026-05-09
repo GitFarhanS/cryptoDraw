@@ -23,12 +23,64 @@ const MINIMAP_SIZE = 180
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 3
 const ZOOM_WHEEL_SENSITIVITY = 0.0018
+const THEME_STORAGE_KEY = 'cryptoDraw.theme'
+const THEMES = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'sepia', label: 'Sepia' },
+  { value: 'solarized-dark', label: 'Solarized dark' },
+  { value: 'high-contrast', label: 'High contrast' },
+]
+
+function readStoredTheme() {
+  if (typeof window === 'undefined') {
+    return 'system'
+  }
+
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (THEMES.some((theme) => theme.value === stored)) {
+      return stored
+    }
+  } catch {
+    // Ignore storage failures and fall back to the default theme.
+  }
+
+  return 'system'
+}
+
+function resolveTheme(theme) {
+  if (theme !== 'system') {
+    return theme
+  }
+
+  if (typeof window === 'undefined') {
+    return 'light'
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function resolveColorScheme(theme) {
+  const resolvedTheme = resolveTheme(theme)
+  if (
+    resolvedTheme === 'dark' ||
+    resolvedTheme === 'solarized-dark' ||
+    resolvedTheme === 'high-contrast'
+  ) {
+    return 'dark'
+  }
+
+  return 'light'
+}
 
 function App() {
   const [placedBlocks, setPlacedBlocks] = useState([])
   /** @type {import('./graph/edge-types.js').GraphEdge[]} */
   const [edges, setEdges] = useState([])
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
+  const [theme, setTheme] = useState(readStoredTheme)
   const [zoom, setZoom] = useState(1)
   const [viewport, setViewport] = useState({
     left: 0,
@@ -39,7 +91,7 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [layoutEpoch, setLayoutEpoch] = useState(0)
   const [wireDrag, setWireDrag] = useState(
-    /** @type {null | { pointerId: number, fromKind: 'input' | 'output', fromBlockId: string, fromPortKey: string, clientX: number, clientY: number }} */ (
+    /** @type {null | { pointerId: number, fromKind: 'input' | 'output', fromBlockId: string, fromPortKey: string, clientX: number, clientY: number }} */(
       null
     ),
   )
@@ -55,11 +107,57 @@ function App() {
   const wireDragRef = useRef(wireDrag)
   const placedBlocksRef = useRef(placedBlocks)
 
-  const canvasRef = useRef(/** @type {HTMLDivElement | null} */ (null))
-  const outerExtentRef = useRef(/** @type {HTMLDivElement | null} */ (null))
+  const canvasRef = useRef(/** @type {HTMLDivElement | null} */(null))
+  const outerExtentRef = useRef(/** @type {HTMLDivElement | null} */(null))
   const zoomRef = useRef(1)
   const didInitialScrollRef = useRef(false)
   const anchorsRef = useRef(new Map())
+
+  useEffect(() => {
+    const resolvedTheme = resolveTheme(theme)
+    const colorScheme = resolveColorScheme(theme)
+    document.body.dataset.theme = resolvedTheme
+    document.body.style.colorScheme = colorScheme
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {
+      // Ignore storage failures; the selected theme still applies for this session.
+    }
+
+    let mediaQueryList
+
+    if (theme === 'system' && typeof window !== 'undefined') {
+      mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
+      const handleChange = () => {
+        const nextResolvedTheme = resolveTheme('system')
+        const nextColorScheme = resolveColorScheme('system')
+        document.body.dataset.theme = nextResolvedTheme
+        document.body.style.colorScheme = nextColorScheme
+      }
+
+      if (typeof mediaQueryList.addEventListener === 'function') {
+        mediaQueryList.addEventListener('change', handleChange)
+      } else {
+        mediaQueryList.addListener(handleChange)
+      }
+
+      return () => {
+        if (typeof mediaQueryList.removeEventListener === 'function') {
+          mediaQueryList.removeEventListener('change', handleChange)
+        } else {
+          mediaQueryList.removeListener(handleChange)
+        }
+        delete document.body.dataset.theme
+        document.body.style.colorScheme = ''
+      }
+    }
+
+    return () => {
+      delete document.body.dataset.theme
+      document.body.style.colorScheme = ''
+    }
+  }, [theme])
 
   useEffect(() => {
     zoomRef.current = zoom
@@ -110,10 +208,10 @@ function App() {
         prev.map((block) =>
           block.id === blockId
             ? {
-                ...block,
-                x: nextX,
-                y: nextY,
-              }
+              ...block,
+              x: nextX,
+              y: nextY,
+            }
             : block,
         ),
       )
@@ -514,6 +612,27 @@ function App() {
         onNavigate={navigateFromMinimap}
       />
       <SidePanel open={sidePanelOpen} onOpenChange={setSidePanelOpen}>
+        <section className="theme-panel" aria-label="Theme selector">
+          <div className="theme-panel__header">
+            <h2 className="theme-panel__title">Theme</h2>
+            <p className="theme-panel__hint">Pick a preset for the board, panels, and wiring.</p>
+          </div>
+          <label className="theme-select-label" htmlFor="theme-select">
+            Active theme
+          </label>
+          <select
+            id="theme-select"
+            className="theme-select"
+            value={theme}
+            onChange={(event) => setTheme(event.target.value)}
+          >
+            {THEMES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </section>
         <SidePanelExpandablePanels />
       </SidePanel>
     </>
