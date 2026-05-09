@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useCanvasGraph } from './graph/canvas-graph-context'
 import FormatConvertBlock from './converter-block/format-convert-block'
 import JoinLotsBlock from './converter-block/join-lots-block'
 import SplitIntoLotsBlock from './converter-block/split-into-lots-block'
@@ -41,6 +42,8 @@ const BLOCK_BY_TYPE = {
  * @param {ReturnType<typeof import('./graph/evaluate-graph.js').evaluateGraph>} props.evaluation
  */
 function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }) {
+  const graph = useCanvasGraph()
+  const zoom = graph?.zoom ?? 1
   const Block = BLOCK_BY_TYPE[block.type]
   const [isDragging, setIsDragging] = useState(false)
   const dragStateRef = useRef({
@@ -74,8 +77,10 @@ function CanvasPlacedBlock({ block, onMove, onPatch, evaluation }) {
       return
     }
 
-    const nextX = window.scrollX + event.clientX - dragStateRef.current.offsetX
-    const nextY = window.scrollY + event.clientY - dragStateRef.current.offsetY
+    const nextX =
+      (window.scrollX + event.clientX - dragStateRef.current.offsetX) / zoom
+    const nextY =
+      (window.scrollY + event.clientY - dragStateRef.current.offsetY) / zoom
     onMove(block.id, nextX, nextY)
     event.stopPropagation()
   }

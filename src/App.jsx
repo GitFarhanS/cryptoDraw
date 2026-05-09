@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import './App.css'
 import CanvasPlacedBlock from './canvas-placed-block'
 import CanvasWires from './canvas-wires'
@@ -19,12 +20,16 @@ import SidePanelExpandablePanels from './side-panel-expandable-panels'
 
 const CANVAS_SIZE = 8000
 const MINIMAP_SIZE = 180
+const MIN_ZOOM = 0.25
+const MAX_ZOOM = 3
+const ZOOM_WHEEL_SENSITIVITY = 0.0018
 
 function App() {
   const [placedBlocks, setPlacedBlocks] = useState([])
   /** @type {import('./graph/edge-types.js').GraphEdge[]} */
   const [edges, setEdges] = useState([])
   const [sidePanelOpen, setSidePanelOpen] = useState(false)
+  const [zoom, setZoom] = useState(1)
   const [viewport, setViewport] = useState({
     left: 0,
     top: 0,
@@ -51,7 +56,14 @@ function App() {
   const placedBlocksRef = useRef(placedBlocks)
 
   const canvasRef = useRef(/** @type {HTMLDivElement | null} */ (null))
+  const outerExtentRef = useRef(/** @type {HTMLDivElement | null} */ (null))
+  const zoomRef = useRef(1)
+  const didInitialScrollRef = useRef(false)
   const anchorsRef = useRef(new Map())
+
+  useEffect(() => {
+    zoomRef.current = zoom
+  }, [zoom])
 
   const bumpLayout = useCallback(() => {
     setLayoutEpoch((n) => n + 1)
@@ -74,6 +86,17 @@ function App() {
     () => evaluateGraph(placedBlocks, edges),
     [placedBlocks, edges],
   )
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return
+    }
+    if (!evaluation?.diagnostics?.length) {
+      return
+    }
+    // Surface graph transfer problems without impacting production UX.
+    console.debug('[graph:dataflow]', evaluation.diagnostics)
+  }, [evaluation])
 
   const patchBlock = useCallback((id, patch) => {
     setPlacedBlocks((prev) =>
@@ -223,11 +246,12 @@ function App() {
 
   useEffect(() => {
     const updateViewport = () => {
+      const z = zoomRef.current
       setViewport({
-        left: window.scrollX,
-        top: window.scrollY,
-        width: window.innerWidth,
-        height: window.innerHeight,
+        left: window.scrollX / z,
+        top: window.scrollY / z,
+        width: window.innerWidth / z,
+        height: window.innerHeight / z,
       })
       bumpLayout()
     }
@@ -240,22 +264,119 @@ function App() {
       window.removeEventListener('scroll', updateViewport)
       window.removeEventListener('resize', updateViewport)
     }
-  }, [bumpLayout])
+  }, [bumpLayout, zoom])
 
-  const canvasStyle = {
-    width: `${CANVAS_SIZE}px`,
-    height: `${CANVAS_SIZE}px`,
-  }
+  useEffect(() => {
+    if (didInitialScrollRef.current) {
+      return
+    }
+    didInitialScrollRef.current = true
+    const z = zoomRef.current
+    const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
+    const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
+    const left = Math.min(
+      Math.max(0, (CANVAS_SIZE * z - window.innerWidth) / 2),
+      maxScrollLeft,
+    )
+    const top = Math.min(
+      Math.max(0, (CANVAS_SIZE * z - window.innerHeight) / 2),
+      maxScrollTop,
+    )
+    window.scrollTo({ left, top })
+  }, [])
 
-  const navigateFromMinimap = (targetLeft, targetTop) => {
-    const maxScrollLeft = Math.max(0, CANVAS_SIZE - window.innerWidth)
-    const maxScrollTop = Math.max(0, CANVAS_SIZE - window.innerHeight)
+  useEffect(() => {
+    const onWheel = (event) => {
+      const hit = document.elementFromPoint(event.clientX, event.clientY)
+      if (hit?.closest('.minimap') || hit?.closest('.side-panel')) {
+        return
+      }
+
+      const outer = outerExtentRef.current
+      if (!outer) {
+        return
+      }
+
+      const bounds = outer.getBoundingClientRect()
+      if (
+        event.clientX < bounds.left ||
+        event.clientX > bounds.right ||
+        event.clientY < bounds.top ||
+        event.clientY > bounds.bottom
+      ) {
+        return
+      }
+
+      event.preventDefault()
+
+      const z0 = zoomRef.current
+      const nextZoom = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, z0 * Math.exp(-event.deltaY * ZOOM_WHEEL_SENSITIVITY)),
+      )
+
+      if (Math.abs(nextZoom - z0) < 1e-8) {
+        return
+      }
+
+      const canvasX = (window.scrollX + event.clientX) / z0
+      const canvasY = (window.scrollY + event.clientY) / z0
+
+      flushSync(() => {
+        setZoom(nextZoom)
+      })
+
+      requestAnimationFrame(() => {
+        const maxScrollLeft = Math.max(0, CANVAS_SIZE * nextZoom - window.innerWidth)
+        const maxScrollTop = Math.max(0, CANVAS_SIZE * nextZoom - window.innerHeight)
+        const left = Math.min(
+          Math.max(0, canvasX * nextZoom - event.clientX),
+          maxScrollLeft,
+        )
+        const top = Math.min(
+          Math.max(0, canvasY * nextZoom - event.clientY),
+          maxScrollTop,
+        )
+        window.scrollTo({ left, top })
+      })
+    }
+
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
+  }, [])
+
+  const navigateFromMinimap = useCallback((targetLeft, targetTop) => {
+    const z = zoomRef.current
+    const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
+    const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
 
     window.scrollTo({
-      left: Math.min(Math.max(0, targetLeft), maxScrollLeft),
-      top: Math.min(Math.max(0, targetTop), maxScrollTop),
+      left: Math.min(Math.max(0, targetLeft * z), maxScrollLeft),
+      top: Math.min(Math.max(0, targetTop * z), maxScrollTop),
     })
-  }
+  }, [])
+
+  const outerExtentStyle = useMemo(
+    () => ({
+      position: 'relative',
+      width: CANVAS_SIZE * zoom,
+      height: CANVAS_SIZE * zoom,
+    }),
+    [zoom],
+  )
+
+  const innerCanvasStyle = useMemo(
+    () => ({
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      width: CANVAS_SIZE,
+      height: CANVAS_SIZE,
+      transform: `scale(${zoom})`,
+      transformOrigin: '0 0',
+    }),
+    [zoom],
+  )
 
   const startDrag = (event) => {
     if (event.button !== 0) {
@@ -326,8 +447,9 @@ function App() {
 
     event.preventDefault()
     const rect = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
+    const z = zoomRef.current
+    const x = (event.clientX - rect.left) / z
+    const y = (event.clientY - rect.top) / z
 
     const created = createPlacedBlock(blockType, x, y)
     if (!created) {
@@ -343,43 +465,47 @@ function App() {
       registerAnchor,
       onPortPointerDown,
       wireDrag,
+      zoom,
     }),
-    [registerAnchor, onPortPointerDown, wireDrag],
+    [registerAnchor, onPortPointerDown, wireDrag, zoom],
   )
 
   return (
     <>
-      <div
-        ref={canvasRef}
-        className={`grid-canvas ${isDragging ? 'is-dragging' : ''}`}
-        style={canvasStyle}
-        aria-label="Notebook style square grid"
-        onPointerDown={startDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onDragEnter={handleCanvasDragEnter}
-        onDragOver={handleCanvasDragOver}
-        onDrop={handleCanvasDrop}
-      >
-        <CanvasGraphContext.Provider value={graphContextValue}>
-          <CanvasWires
-            edges={edges}
-            anchorsRef={anchorsRef}
-            canvasRef={canvasRef}
-            rubberBand={wireDrag}
-            layoutEpoch={layoutEpoch}
-          />
-          {placedBlocks.map((block) => (
-            <CanvasPlacedBlock
-              key={block.id}
-              block={block}
-              onMove={movePlacedBlock}
-              onPatch={patchBlock}
-              evaluation={evaluation}
+      <div ref={outerExtentRef} className="canvas-scroll-extent" style={outerExtentStyle}>
+        <div
+          ref={canvasRef}
+          className={`grid-canvas ${isDragging ? 'is-dragging' : ''}`}
+          style={innerCanvasStyle}
+          aria-label="Notebook style square grid"
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onDragEnter={handleCanvasDragEnter}
+          onDragOver={handleCanvasDragOver}
+          onDrop={handleCanvasDrop}
+        >
+          <CanvasGraphContext.Provider value={graphContextValue}>
+            <CanvasWires
+              edges={edges}
+              anchorsRef={anchorsRef}
+              canvasRef={canvasRef}
+              rubberBand={wireDrag}
+              layoutEpoch={layoutEpoch}
+              zoom={zoom}
             />
-          ))}
-        </CanvasGraphContext.Provider>
+            {placedBlocks.map((block) => (
+              <CanvasPlacedBlock
+                key={block.id}
+                block={block}
+                onMove={movePlacedBlock}
+                onPatch={patchBlock}
+                evaluation={evaluation}
+              />
+            ))}
+          </CanvasGraphContext.Provider>
+        </div>
       </div>
       <MiniMap
         canvasSize={CANVAS_SIZE}

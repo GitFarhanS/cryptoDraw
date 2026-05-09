@@ -1,4 +1,8 @@
-import { INPUT_BLOCK_TYPES, PLACED_BLOCK_TYPES } from '../input-blocks/drag-constants'
+import {
+  INPUT_BLOCK_TYPES,
+  OPERATION_BLOCK_TYPES,
+  PLACED_BLOCK_TYPES,
+} from '../input-blocks/drag-constants'
 
 /**
  * @typedef {object} PlacedBlockRecord
@@ -12,6 +16,9 @@ import { INPUT_BLOCK_TYPES, PLACED_BLOCK_TYPES } from '../input-blocks/drag-cons
  * @property {string} [fcText]
  * @property {string} [fcInputFormat]
  * @property {string} [fcOutputFormat]
+ * @property {'auto' | 'manual'} [opDisplayMode]
+ * @property {'binary' | 'ascii' | 'hex' | 'decimal'} [opDisplayFormat]
+ * @property {'logical' | 'circular'} [opShiftMode]
  */
 
 /**
@@ -48,6 +55,14 @@ export function createPlacedBlock(type, x, y) {
       fcText: '',
       fcInputFormat: 'hex',
       fcOutputFormat: 'ascii',
+    }
+  }
+  if (OPERATION_BLOCK_TYPES.includes(type)) {
+    return {
+      ...base,
+      opDisplayMode: 'auto',
+      opDisplayFormat: 'hex',
+      opShiftMode: 'logical',
     }
   }
 

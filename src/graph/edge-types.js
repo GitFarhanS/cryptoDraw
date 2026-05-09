@@ -134,3 +134,23 @@ export function upsertEdgeForInputPort(edges, newEdge) {
   )
   return [...filtered, newEdge]
 }
+
+/**
+ * Validate an edge against current block records and dynamic port shapes.
+ * @param {Map<string, { type: string, blockCount?: number, joinCount?: number }>} byId
+ * @param {GraphEdge} edge
+ */
+export function isEdgeValidForBlocks(byId, edge) {
+  const fromBlock = byId.get(edge.from.blockId)
+  const toBlock = byId.get(edge.to.blockId)
+  if (!fromBlock || !toBlock) {
+    return false
+  }
+  const paramsFor = (b) => ({
+    blockCount: b.blockCount,
+    joinCount: b.joinCount,
+  })
+  const outPorts = outputPortKeysForBlock(fromBlock.type, paramsFor(fromBlock))
+  const inPorts = inputPortKeysForBlock(toBlock.type, paramsFor(toBlock))
+  return outPorts.includes(edge.from.portKey) && inPorts.includes(edge.to.portKey)
+}

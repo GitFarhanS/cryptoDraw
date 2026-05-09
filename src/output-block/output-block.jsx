@@ -15,8 +15,18 @@ function OutputBlock({
 
   const inKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
   const inBytes = isCanvas ? evaluation?.portBytes?.get(inKey) : undefined
-  const displayHex =
-    inBytes !== undefined ? serializeBytesToFormat('hex', inBytes) : ''
+  const inFormat = isCanvas ? evaluation?.portFormats?.get(inKey) ?? 'hex' : 'hex'
+  const inBitLength = isCanvas ? evaluation?.portBitLengths?.get(inKey) : undefined
+  const hasWiredInput = inBytes !== undefined
+  let displayValue = ''
+  if (hasWiredInput) {
+    if (inFormat === 'binary') {
+      const full = serializeBytesToFormat('binary', inBytes)
+      displayValue = full.slice(0, inBitLength ?? full.length)
+    } else {
+      displayValue = serializeBytesToFormat(inFormat, inBytes)
+    }
+  }
 
   const sectionClass = [
     'input-block',
@@ -48,17 +58,20 @@ function OutputBlock({
       {isCanvas ? (
         <>
           <label className="converter-block-label" htmlFor={`${id}-view`}>
-            Wired value (hex)
+            Wired value ({inFormat})
           </label>
           <textarea
             id={`${id}-view`}
             className="input-block-field input-block-field--mono"
-            value={displayHex}
+            value={displayValue}
             readOnly
             rows={4}
             spellCheck={false}
             aria-label="Output from wiring"
           />
+          {!hasWiredInput ? (
+            <p className="input-block-hint">No wired input yet. Connect a source block to `in`.</p>
+          ) : null}
         </>
       ) : null}
     </section>

@@ -6,15 +6,13 @@ function parseBinaryToBytes(str) {
   if (bits.length === 0) {
     return new Uint8Array(0)
   }
-  if (bits.length % 8 !== 0) {
-    throw new Error('Binary length must be a multiple of 8 bits.')
-  }
   if (!/^[01]+$/.test(bits)) {
     throw new Error('Binary must contain only 0 and 1.')
   }
-  const out = new Uint8Array(bits.length / 8)
+  const padded = bits.padEnd(Math.ceil(bits.length / 8) * 8, '0')
+  const out = new Uint8Array(padded.length / 8)
   for (let i = 0; i < out.length; i++) {
-    out[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2)
+    out[i] = parseInt(padded.slice(i * 8, i * 8 + 8), 2)
   }
   return out
 }

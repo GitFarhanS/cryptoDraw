@@ -11,8 +11,9 @@ import { portRegistryKey } from './graph/edge-types'
  * @param {React.RefObject<HTMLElement | null>} props.canvasRef
  * @param {{ fromBlockId: string, fromPortKey: string, clientX: number, clientY: number } | null} props.rubberBand
  * @param {number} props.layoutEpoch
+ * @param {number} props.zoom CSS scale on the canvas; rects are in viewport px, SVG uses logical canvas coords
  */
-function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch }) {
+function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom }) {
   const [geometry, setGeometry] = useState({
     paths: /** @type {{ edge: GraphEdge, d: string }[]} */ ([]),
     rubberPath: /** @type {string | null} */ (null),
@@ -26,6 +27,7 @@ function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch }) 
     }
 
     const canvasRect = canvasEl.getBoundingClientRect()
+    const z = zoom || 1
 
     /** @param {string} registryKey */
     function anchorPoint(registryKey) {
@@ -35,8 +37,8 @@ function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch }) 
       }
       const r = el.getBoundingClientRect()
       return {
-        x: r.left + r.width / 2 - canvasRect.left,
-        y: r.top + r.height / 2 - canvasRect.top,
+        x: (r.left + r.width / 2 - canvasRect.left) / z,
+        y: (r.top + r.height / 2 - canvasRect.top) / z,
       }
     }
 
@@ -59,15 +61,15 @@ function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch }) 
       const p1 = anchorPoint(fromKey)
       if (p1) {
         const p2 = {
-          x: rubberBand.clientX - canvasRect.left,
-          y: rubberBand.clientY - canvasRect.top,
+          x: (rubberBand.clientX - canvasRect.left) / z,
+          y: (rubberBand.clientY - canvasRect.top) / z,
         }
         rubberPath = bezierPathD(p1, p2)
       }
     }
 
     setGeometry({ paths, rubberPath })
-  }, [edges, anchorsRef, canvasRef, rubberBand, layoutEpoch])
+  }, [edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom])
 
   return (
     <svg className="canvas-wires" aria-hidden>

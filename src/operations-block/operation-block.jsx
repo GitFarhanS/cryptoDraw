@@ -2,7 +2,7 @@ import { useId } from 'react'
 import PortHandle from '../port-handle'
 import { portRegistryKey } from '../graph/edge-types'
 import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { serializeBytesToFormat } from '../converter-block/format-bytes'
+import { BYTE_FORMATS, serializeBytesToFormat } from '../converter-block/format-bytes'
 
 function OperationBlock({
   title,
@@ -10,6 +10,7 @@ function OperationBlock({
   blockType,
   draggableToCanvas = false,
   block,
+  onBlockPatch,
   evaluation,
 }) {
   const id = useId()
@@ -17,9 +18,28 @@ function OperationBlock({
   const isCanvas = Boolean(block)
 
   const outKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
+  const inAKey = isCanvas ? portRegistryKey(block.id, 'in:a') : ''
+  const inBKey = isCanvas ? portRegistryKey(block.id, 'in:b') : ''
   const outBytes = isCanvas ? evaluation?.portBytes?.get(outKey) : undefined
-  const resultText =
-    outBytes !== undefined ? serializeBytesToFormat('hex', outBytes) : ''
+  const outBits = isCanvas ? evaluation?.portBitLengths?.get(outKey) : undefined
+  const inFmtA = isCanvas ? evaluation?.portFormats?.get(inAKey) : undefined
+  const inFmtB = isCanvas ? evaluation?.portFormats?.get(inBKey) : undefined
+  const displayMode = isCanvas ? block.opDisplayMode ?? 'auto' : 'auto'
+  const manualFormat = isCanvas ? block.opDisplayFormat ?? 'hex' : 'hex'
+  const shiftMode = isCanvas ? block.opShiftMode ?? 'logical' : 'logical'
+  const supportsShiftMode = blockType === 'opLeftShift' || blockType === 'opRightShift'
+  const autoFormat =
+    inFmtA && inFmtB ? (inFmtA === inFmtB ? inFmtA : 'hex') : (inFmtA ?? inFmtB ?? 'hex')
+  const effectiveFormat = displayMode === 'manual' ? manualFormat : autoFormat
+  let resultText = ''
+  if (outBytes !== undefined) {
+    if (effectiveFormat === 'binary') {
+      const bits = serializeBytesToFormat('binary', outBytes)
+      resultText = bits.slice(0, outBits ?? bits.length)
+    } else {
+      resultText = serializeBytesToFormat(effectiveFormat, outBytes)
+    }
+  }
 
   const sectionClass = [
     'input-block',
@@ -52,8 +72,61 @@ function OperationBlock({
       {isCanvas ? (
         <>
           <label className="converter-block-label" htmlFor={`${id}-result`}>
-            Result (hex)
+            Result ({effectiveFormat})
           </label>
+          <div className="converter-block-row">
+            {supportsShiftMode ? (
+              <div>
+                <label className="converter-block-label" htmlFor={`${id}-shift-mode`}>
+                  Shift mode
+                </label>
+                <select
+                  id={`${id}-shift-mode`}
+                  className="input-block-field"
+                  value={shiftMode}
+                  onChange={(e) => onBlockPatch?.({ opShiftMode: e.target.value })}
+                  aria-label="Shift mode"
+                >
+                  <option value="logical">Logical</option>
+                  <option value="circular">Circular</option>
+                </select>
+              </div>
+            ) : null}
+            <div>
+              <label className="converter-block-label" htmlFor={`${id}-mode`}>
+                Display mode
+              </label>
+              <select
+                id={`${id}-mode`}
+                className="input-block-field"
+                value={displayMode}
+                onChange={(e) => onBlockPatch?.({ opDisplayMode: e.target.value })}
+                aria-label="Operation display mode"
+              >
+                <option value="auto">Auto</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+            <div>
+              <label className="converter-block-label" htmlFor={`${id}-format`}>
+                Display format
+              </label>
+              <select
+                id={`${id}-format`}
+                className="input-block-field"
+                value={manualFormat}
+                disabled={displayMode !== 'manual'}
+                onChange={(e) => onBlockPatch?.({ opDisplayFormat: e.target.value })}
+                aria-label="Operation display format"
+              >
+                {BYTE_FORMATS.map((fmt) => (
+                  <option key={fmt} value={fmt}>
+                    {fmt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <textarea
             id={`${id}-result`}
             className="input-block-field input-block-field--mono"
