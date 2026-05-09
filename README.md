@@ -2,7 +2,7 @@
 
 A visual, node-based playground for exploring how data is encoded, transformed, and combined at the byte and bit level. Drag blocks onto an canvas, wire them together, and watch values flow through the graph in real time.
 
-**Live demo:** [gitfarhans.github.io/cryptoDraw](https://gitfarhans.github.io/cryptoDraw/)
+**Live demo:** [https://cryptodraw.farhanshaikh.uk](https://cryptodraw.farhanshaikh.uk)
 
 ## What it is
 
