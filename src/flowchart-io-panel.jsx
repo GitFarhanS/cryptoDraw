@@ -18,7 +18,7 @@ function FlowchartIoPanel({ onExportFlowchart, onImportFlowchart }) {
 
   const importFlowchart = () => {
     const base64 = window.prompt('Paste Base64 flowchart text to import:')
-    if (base64 === null) {
+    if (base64 === null || base64.trim() === '') {
       return
     }
 
