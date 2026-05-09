@@ -257,6 +257,15 @@ body[data-theme='solarized-dark'] {
     cursor: crosshair;
 }
 
+.canvas-scroll-extent {
+    overflow: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 .cursor-mode-menu {
     position: fixed;
     top: 14px;
@@ -358,6 +367,14 @@ body[data-theme='solarized-dark'] {
     position: absolute;
     border: 2px solid var(--accent);
     background-color: var(--accent-soft);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.minimap-block {
+    position: absolute;
+    background-color: rgba(79, 109, 255, 0.4);
+    border: 1px solid rgba(79, 109, 255, 0.6);
     border-radius: 2px;
     pointer-events: none;
 }
