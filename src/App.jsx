@@ -59,6 +59,7 @@ function App() {
   const wireDragRef = useRef(wireDrag)
   const placedBlocksRef = useRef(placedBlocks)
   const edgesRef = useRef(edges)
+  const blockContextMenuRef = useRef(/** @type {HTMLDivElement | null} */ (null))
 
   const canvasRef = useRef(/** @type {HTMLDivElement | null} */ (null))
   const outerExtentRef = useRef(/** @type {HTMLDivElement | null} */ (null))
@@ -337,6 +338,10 @@ function App() {
       return undefined
     }
 
+    blockContextMenuRef.current
+      ?.querySelector('.block-context-menu__action')
+      ?.focus()
+
     const onPointerDown = (event) => {
       if (
         event.target instanceof Element &&
@@ -361,6 +366,44 @@ function App() {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [blockContextMenu, closeBlockContextMenu])
+
+  const handleBlockContextMenuKeyDown = (event) => {
+    if (
+      event.key !== 'ArrowDown' &&
+      event.key !== 'ArrowUp' &&
+      event.key !== 'Home' &&
+      event.key !== 'End'
+    ) {
+      return
+    }
+
+    const actions = Array.from(
+      event.currentTarget.querySelectorAll('.block-context-menu__action'),
+    )
+    if (!actions.length) {
+      return
+    }
+
+    event.preventDefault()
+    const activeIndex = actions.indexOf(
+      /** @type {HTMLButtonElement} */ (document.activeElement),
+    )
+
+    if (event.key === 'Home') {
+      actions[0].focus()
+      return
+    }
+    if (event.key === 'End') {
+      actions[actions.length - 1].focus()
+      return
+    }
+
+    const offset = event.key === 'ArrowDown' ? 1 : -1
+    const nextIndex = activeIndex === -1
+      ? 0
+      : (activeIndex + offset + actions.length) % actions.length
+    actions[nextIndex].focus()
+  }
 
   useEffect(() => {
     const onWheel = (event) => {
@@ -587,9 +630,11 @@ function App() {
       </div>
       {blockContextMenu ? (
         <div
+          ref={blockContextMenuRef}
           className="block-context-menu"
           aria-label="Block actions"
           style={{ left: blockContextMenu.clientX, top: blockContextMenu.clientY }}
+          onKeyDown={handleBlockContextMenuKeyDown}
         >
           <button
             type="button"
