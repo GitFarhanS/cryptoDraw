@@ -210,19 +210,6 @@ function clampInt(value, min, max) {
   return Math.min(max, Math.max(min, Math.floor(n)))
 }
 
-function utf8ToBase64(text) {
-  const BufferCtor = globalThis.Buffer
-  if (BufferCtor) {
-    return BufferCtor.from(text, 'utf8').toString('base64')
-  }
-  const bytes = new TextEncoder().encode(text)
-  const chars = []
-  for (const byte of bytes) {
-    chars.push(String.fromCharCode(byte))
-  }
-  return btoa(chars.join(''))
-}
-
 function bytesToBase64(bytes) {
   const BufferCtor = globalThis.Buffer
   if (BufferCtor) {
@@ -250,16 +237,6 @@ function bytesToUtf8(bytes) {
   if (BufferCtor) {
     return BufferCtor.from(bytes).toString('utf8')
   }
-  return new TextDecoder().decode(bytes)
-}
-
-function base64ToUtf8(base64Text) {
-  const BufferCtor = globalThis.Buffer
-  if (BufferCtor) {
-    return BufferCtor.from(base64Text, 'base64').toString('utf8')
-  }
-  const binary = atob(base64Text)
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
   return new TextDecoder().decode(bytes)
 }
 

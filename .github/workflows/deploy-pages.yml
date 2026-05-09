@@ -30,6 +30,8 @@ jobs:
 
       - run: pnpm run ci
 
+      - run: pnpm run lint
+
       - run: pnpm run build
 
       - uses: actions/upload-pages-artifact@v4
