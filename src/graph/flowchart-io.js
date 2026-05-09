@@ -204,11 +204,11 @@ function utf8ToBase64(text) {
     return BufferCtor.from(text, 'utf8').toString('base64')
   }
   const bytes = new TextEncoder().encode(text)
-  let binary = ''
+  const chars = []
   for (const byte of bytes) {
-    binary += String.fromCharCode(byte)
+    chars.push(String.fromCharCode(byte))
   }
-  return btoa(binary)
+  return btoa(chars.join(''))
 }
 
 function base64ToUtf8(base64Text) {
@@ -222,8 +222,15 @@ function base64ToUtf8(base64Text) {
 }
 
 function isValidBase64Text(value) {
-  if (value.length % 4 !== 0) {
+  if (!value || value.length % 4 !== 0) {
     return false
   }
-  return /^[A-Za-z0-9+/]*={0,2}$/.test(value)
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) {
+    return false
+  }
+  const firstPad = value.indexOf('=')
+  if (firstPad === -1) {
+    return true
+  }
+  return firstPad >= value.length - 2 && /^=+$/.test(value.slice(firstPad))
 }
