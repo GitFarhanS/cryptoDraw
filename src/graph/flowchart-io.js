@@ -39,14 +39,11 @@ export function parseFlowchartFromBase64(base64Text) {
     throw new Error('Could not decode Base64 flowchart text.')
   }
 
-  let jsonText
   try {
-    jsonText = new TextDecoder().decode(inflateSync(data))
+    return parseFlowchartFromText(new TextDecoder().decode(inflateSync(data)))
   } catch {
-    jsonText = bytesToUtf8(data)
+    return parseFlowchartFromText(bytesToUtf8(data))
   }
-
-  return parseFlowchartFromText(jsonText)
 }
 
 export function parseFlowchartFromText(jsonText) {
