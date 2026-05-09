@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { duplicatePlacedBlock, removePlacedBlockAndEdges } from './placed-block-actions'
+import {
+    duplicatePlacedBlock,
+    positionBlocksAtAnchor,
+    removePlacedBlockAndEdges,
+} from './placed-block-actions'
 
 describe('placed block actions', () => {
     it('duplicates a block with a new id and offset', () => {
@@ -34,5 +38,18 @@ describe('placed block actions', () => {
         const next = removePlacedBlockAndEdges(blocks, edges, 'a')
         expect(next.placedBlocks.map((block) => block.id)).toEqual(['b', 'c'])
         expect(next.edges.map((edge) => edge.id)).toEqual(['e3'])
+    })
+
+    it('positions copied blocks so top-left aligns with paste anchor', () => {
+        const blocks = [
+            { id: 'a', type: 'ascii', x: 90, y: 110 },
+            { id: 'b', type: 'output', x: 140, y: 180 },
+        ]
+
+        const anchored = positionBlocksAtAnchor(blocks, 300, 400)
+        expect(anchored).toEqual([
+            { id: 'a', type: 'ascii', x: 300, y: 400 },
+            { id: 'b', type: 'output', x: 350, y: 470 },
+        ])
     })
 })

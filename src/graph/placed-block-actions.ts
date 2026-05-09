@@ -31,3 +31,22 @@ export function removePlacedBlockAndEdges(
         ),
     }
 }
+
+export function positionBlocksAtAnchor(
+    placedBlocks: PlacedBlockRecord[],
+    anchorX: number,
+    anchorY: number,
+) {
+    if (!placedBlocks.length) {
+        return []
+    }
+
+    const minX = Math.min(...placedBlocks.map((block) => block.x))
+    const minY = Math.min(...placedBlocks.map((block) => block.y))
+
+    return placedBlocks.map((block) => ({
+        ...block,
+        x: anchorX + (block.x - minX),
+        y: anchorY + (block.y - minY),
+    }))
+}

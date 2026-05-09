@@ -18,7 +18,11 @@ import {
     parseFlowchartFromBase64,
     serializeFlowchartToBase64,
 } from './graph/flowchart-io'
-import { duplicatePlacedBlock, removePlacedBlockAndEdges } from './graph/placed-block-actions'
+import {
+    duplicatePlacedBlock,
+    positionBlocksAtAnchor,
+    removePlacedBlockAndEdges,
+} from './graph/placed-block-actions'
 import { createPlacedBlock } from './graph/placed-block-defaults'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
@@ -110,6 +114,12 @@ function App() {
         clientX: number
         clientY: number
     }>(null)
+    const [boardContextMenu, setBoardContextMenu] = useState<null | {
+        clientX: number
+        clientY: number
+        canvasX: number
+        canvasY: number
+    }>(null)
     const [wireDrag, setWireDrag] = useState<any>(null)
 
     const dragStateRef = useRef<any>({
@@ -133,6 +143,7 @@ function App() {
     const selectedBlockIdsRef = useRef(selectedBlockIds)
     const edgesRef = useRef(edges)
     const blockContextMenuRef = useRef<HTMLDivElement | null>(null)
+    const boardContextMenuRef = useRef<HTMLDivElement | null>(null)
     const blockElementsRef = useRef(new Map<string, HTMLDivElement>())
 
     const canvasRef = useRef<HTMLDivElement | null>(null)
@@ -280,8 +291,9 @@ function App() {
         [bumpLayout],
     )
 
-    const closeBlockContextMenu = useCallback(() => {
+    const closeContextMenus = useCallback(() => {
         setBlockContextMenu(null)
+        setBoardContextMenu(null)
     }, [])
 
     const handleSelectBlock = useCallback((blockId: string, additive: boolean) => {
@@ -297,8 +309,8 @@ function App() {
             }
             return [blockId]
         })
-        closeBlockContextMenu()
-    }, [closeBlockContextMenu])
+        closeContextMenus()
+    }, [closeContextMenus])
 
     const registerBlockElement = useCallback((blockId: string, el: HTMLDivElement | null) => {
         if (el) {
@@ -310,6 +322,7 @@ function App() {
 
     const openBlockContextMenu = useCallback((blockId: string, clientX: number, clientY: number) => {
         setSelectedBlockIds((prev) => (prev.includes(blockId) ? prev : [blockId]))
+        setBoardContextMenu(null)
         setBlockContextMenu({ blockId, clientX, clientY })
     }, [])
 
@@ -330,9 +343,9 @@ function App() {
         setPlacedBlocks(nextPlacedBlocks)
         setEdges(nextEdges)
         setSelectedBlockIds([])
-        closeBlockContextMenu()
+        closeContextMenus()
         bumpLayout()
-    }, [bumpLayout, closeBlockContextMenu])
+    }, [bumpLayout, closeContextMenus])
 
     const duplicateSelectedBlocks = useCallback((menuBlockId: string) => {
         const targetIds = selectedBlockIdsRef.current.includes(menuBlockId)
@@ -372,19 +385,20 @@ function App() {
         if (internalNewEdges.length) {
             setEdges((prev) => [...prev, ...internalNewEdges])
         }
-        closeBlockContextMenu()
+        closeContextMenus()
         bumpLayout()
-    }, [bumpLayout, closeBlockContextMenu])
+    }, [bumpLayout, closeContextMenus])
 
-    const copySelectedBlocks = useCallback(async () => {
-        const selected = selectedBlockIdsRef.current
-        if (!selected.length) return
-
-        const blocks = placedBlocksRef.current.filter((b) => selected.includes(b.id))
+    const copyBlocks = useCallback(async (targetIds: string[]) => {
+        if (!targetIds.length) return
+        const targetSet = new Set(targetIds)
+        const blocks = placedBlocksRef.current.filter((block) => targetSet.has(block.id))
+        if (!blocks.length) {
+            return
+        }
         const edgesList = edgesRef.current.filter(
-            (e) => selected.includes(e.from.blockId) && selected.includes(e.to.blockId),
+            (edge) => targetSet.has(edge.from.blockId) && targetSet.has(edge.to.blockId),
         )
-
         try {
             const text = serializeFlowchartToBase64(blocks, edgesList)
             await navigator.clipboard.writeText(text)
@@ -393,21 +407,37 @@ function App() {
         }
     }, [])
 
-    const pasteFromClipboard = useCallback(async () => {
+    const copySelectedBlocks = useCallback(async () => {
+        await copyBlocks(selectedBlockIdsRef.current)
+    }, [copyBlocks])
+
+    const copyBlocksForContextMenu = useCallback(async (menuBlockId: string) => {
+        const selected = selectedBlockIdsRef.current
+        const targetIds = selected.includes(menuBlockId) ? selected : [menuBlockId]
+        await copyBlocks(targetIds)
+        closeContextMenus()
+    }, [closeContextMenus, copyBlocks])
+
+    const pasteFromClipboard = useCallback(async (pasteAnchor?: { x: number, y: number }) => {
         try {
             const text = await navigator.clipboard.readText()
             if (!text) return
             const parsed = parseFlowchartFromBase64(text)
 
             const idMap = new Map<string, string>()
-            const duplicated = parsed.placedBlocks.map((block: any, index: number) => {
+            let pastedBlocks = parsed.placedBlocks
+            if (pasteAnchor) {
+                pastedBlocks = positionBlocksAtAnchor(parsed.placedBlocks, pasteAnchor.x, pasteAnchor.y)
+            }
+
+            const duplicated = pastedBlocks.map((block: any, index: number) => {
                 const newId = crypto.randomUUID()
                 idMap.set(block.id, newId)
                 return {
                     ...block,
                     id: newId,
-                    x: block.x + 24 * (index + 1),
-                    y: block.y + 24 * (index + 1),
+                    x: pasteAnchor ? block.x : block.x + 24 * (index + 1),
+                    y: pasteAnchor ? block.y : block.y + 24 * (index + 1),
                 }
             })
 
@@ -425,11 +455,12 @@ function App() {
                 setEdges((prev) => [...prev, ...newEdges])
             }
             setSelectedBlockIds(duplicated.map((b) => b.id))
+            closeContextMenus()
             bumpLayout()
         } catch {
             // ignore parse/clipboard errors
         }
-    }, [bumpLayout])
+    }, [bumpLayout, closeContextMenus])
 
     useEffect(() => {
         const isInteractive = (el: Element | null) =>
@@ -539,11 +570,15 @@ function App() {
     }, [edges])
 
     useEffect(() => {
-        if (!activeBlockContextMenu) {
+        if (!activeBlockContextMenu && !boardContextMenu) {
             return undefined
         }
 
-        blockContextMenuRef.current?.querySelector<HTMLButtonElement>('.block-context-menu__action')?.focus()
+        if (activeBlockContextMenu) {
+            blockContextMenuRef.current?.querySelector<HTMLButtonElement>('.block-context-menu__action')?.focus()
+        } else {
+            boardContextMenuRef.current?.querySelector<HTMLButtonElement>('.block-context-menu__action')?.focus()
+        }
 
         const onPointerDown = (event: PointerEvent) => {
             if (
@@ -552,12 +587,12 @@ function App() {
             ) {
                 return
             }
-            closeBlockContextMenu()
+            closeContextMenus()
         }
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                closeBlockContextMenu()
+                closeContextMenus()
             }
         }
 
@@ -567,7 +602,7 @@ function App() {
             globalThis.window.removeEventListener('pointerdown', onPointerDown)
             globalThis.window.removeEventListener('keydown', onKeyDown)
         }
-    }, [activeBlockContextMenu, closeBlockContextMenu])
+    }, [activeBlockContextMenu, boardContextMenu, closeContextMenus])
 
     const handleBlockContextMenuKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
@@ -846,7 +881,7 @@ function App() {
             return
         }
 
-        closeBlockContextMenu()
+        closeContextMenus()
 
         if (cursorMode === 'select') {
             const additive = event.ctrlKey || event.metaKey
@@ -941,6 +976,24 @@ function App() {
         event.currentTarget.releasePointerCapture(event.pointerId)
         dragStateRef.current.pointerId = null
         setIsDragging(false)
+    }
+
+    const handleCanvasContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+        if (event.target !== event.currentTarget) {
+            return
+        }
+        event.preventDefault()
+        const rect = event.currentTarget.getBoundingClientRect()
+        const z = zoomRef.current
+        const canvasX = (event.clientX - rect.left) / z
+        const canvasY = (event.clientY - rect.top) / z
+        setBlockContextMenu(null)
+        setBoardContextMenu({
+            clientX: event.clientX,
+            clientY: event.clientY,
+            canvasX,
+            canvasY,
+        })
     }
 
     const handleCanvasDragOver = (event: ReactDragEvent<HTMLDivElement>) => {
@@ -1041,6 +1094,7 @@ function App() {
                     onDragEnter={handleCanvasDragEnter}
                     onDragOver={handleCanvasDragOver}
                     onDrop={handleCanvasDrop}
+                    onContextMenu={handleCanvasContextMenu}
                 >
                     <CanvasGraphContext.Provider value={graphContextValue}>
                         <CanvasWires
@@ -1091,6 +1145,13 @@ function App() {
                     <button
                         type="button"
                         className="block-context-menu__action"
+                        onClick={() => copyBlocksForContextMenu(activeBlockContextMenu.blockId)}
+                    >
+                        Copy
+                    </button>
+                    <button
+                        type="button"
+                        className="block-context-menu__action"
                         onClick={() => duplicateSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Duplicate
@@ -1101,6 +1162,25 @@ function App() {
                         onClick={() => deleteSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Delete
+                    </button>
+                </div>
+            ) : null}
+            {boardContextMenu ? (
+                <div
+                    ref={boardContextMenuRef}
+                    className="block-context-menu"
+                    role="menu"
+                    tabIndex={-1}
+                    aria-label="Board actions"
+                    style={{ left: boardContextMenu.clientX, top: boardContextMenu.clientY }}
+                    onKeyDown={handleBlockContextMenuKeyDown}
+                >
+                    <button
+                        type="button"
+                        className="block-context-menu__action"
+                        onClick={() => pasteFromClipboard({ x: boardContextMenu.canvasX, y: boardContextMenu.canvasY })}
+                    >
+                        Paste
                     </button>
                 </div>
             ) : null}
