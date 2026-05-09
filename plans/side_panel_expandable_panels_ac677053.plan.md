@@ -2,15 +2,15 @@
 name: Side panel expandable panels
 overview: Add a new JSX component that renders five stacked grayscale rows inside the side panel; clicking one expands it to fill the panel inner area, with an explicit control to collapse back to the five-row layout.
 todos:
-  - id: add-component
-    content: Create side-panel-expandable-panels.jsx with 5 rows, expandedIndex state, full-height expanded view + close control
-    status: completed
-  - id: add-css
-    content: Add grayscale flex layout styles to App.css under sp-panels namespace
-    status: completed
-  - id: wire-app
-    content: Import component and render as SidePanel children in App.jsx
-    status: completed
+    - id: add-component
+      content: Create side-panel-expandable-panels.jsx with 5 rows, expandedIndex state, full-height expanded view + close control
+      status: completed
+    - id: add-css
+      content: Add grayscale flex layout styles to App.css under sp-panels namespace
+      status: completed
+    - id: wire-app
+      content: Import component and render as SidePanel children in App.jsx
+      status: completed
 isProject: false
 ---
 
@@ -29,21 +29,21 @@ isProject: false
 ## Implementation
 
 1. **New file** [`../src/side-panel-expandable-panels.jsx`](../src/side-panel-expandable-panels.jsx) (name can be shortened if you prefer, e.g. `expandable-panels.jsx`):
-   - `useState` for `expandedIndex` (`null` | `0`–`4`).
-   - Map over a fixed array of 5 items (placeholder labels like “Panel 1” … “Panel 5”, or a small `PANELS` constant).
-   - **Collapsed UI:** container `display: flex; flex-direction: column; flex: 1; min-height: 0; gap` — five `button` elements (type `button`) for accessibility: `aria-expanded={expandedIndex === i}`, optional `aria-controls` for the expanded region id.
-   - **Expanded UI:** when `expandedIndex === i`, render either (a) only that panel’s full view, or (b) keep the list in DOM but visually hide others — (a) is simpler: one fragment that shows either the list or the single expanded panel.
-   - Expanded body: header row with close + title; body area `flex: 1; overflow: auto; min-height: 0` for long content later.
+    - `useState` for `expandedIndex` (`null` | `0`–`4`).
+    - Map over a fixed array of 5 items (placeholder labels like “Panel 1” … “Panel 5”, or a small `PANELS` constant).
+    - **Collapsed UI:** container `display: flex; flex-direction: column; flex: 1; min-height: 0; gap` — five `button` elements (type `button`) for accessibility: `aria-expanded={expandedIndex === i}`, optional `aria-controls` for the expanded region id.
+    - **Expanded UI:** when `expandedIndex === i`, render either (a) only that panel’s full view, or (b) keep the list in DOM but visually hide others — (a) is simpler: one fragment that shows either the list or the single expanded panel.
+    - Expanded body: header row with close + title; body area `flex: 1; overflow: auto; min-height: 0` for long content later.
 
 2. **Styles** in [`../src/App.css`](../src/App.css) (alongside existing `.side-panel-inner` rules):
-   - Namespace classes e.g. `.sp-panels`, `.sp-panel-row`, `.sp-panel-expanded`, `.sp-panel-expanded-header`.
-   - **Grayscale:** neutral backgrounds (`#eaeaec`, `#e2e4e8`, etc.), borders `#c5c9d1` / `#b0b4bd`, text `#3d3d42` — consistent with the app’s existing cool grays but clearly monochrome.
-   - Rows: `min-height` ~44–56px, `border-radius` 6–8px, hover/focus-visible aligned with `.side-panel-toggle:focus-visible` (reuse outline pattern).
-   - Expanded: full flex height of parent; close button styled like existing controls (no new design system).
+    - Namespace classes e.g. `.sp-panels`, `.sp-panel-row`, `.sp-panel-expanded`, `.sp-panel-expanded-header`.
+    - **Grayscale:** neutral backgrounds (`#eaeaec`, `#e2e4e8`, etc.), borders `#c5c9d1` / `#b0b4bd`, text `#3d3d42` — consistent with the app’s existing cool grays but clearly monochrome.
+    - Rows: `min-height` ~44–56px, `border-radius` 6–8px, hover/focus-visible aligned with `.side-panel-toggle:focus-visible` (reuse outline pattern).
+    - Expanded: full flex height of parent; close button styled like existing controls (no new design system).
 
 3. **Wire-up** in [`../src/App.jsx`](../src/App.jsx):
-   - `import SidePanelExpandablePanels from './side-panel-expandable-panels'` (or chosen filename).
-   - `<SidePanel ...><SidePanelExpandablePanels /></SidePanel>`.
+    - `import SidePanelExpandablePanels from './side-panel-expandable-panels'` (or chosen filename).
+    - `<SidePanel ...><SidePanelExpandablePanels /></SidePanel>`.
 
 ## Accessibility
 

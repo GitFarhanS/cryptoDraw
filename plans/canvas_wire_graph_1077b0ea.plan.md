@@ -2,21 +2,21 @@
 name: Canvas wire graph
 overview: Add interactive Bézier connections from output notches to input notches, persist an edge graph in app state, measure port positions against the canvas for correct SVG geometry, and evaluate the graph so downstream blocks (especially converters) consume wired upstream byte values.
 todos:
-  - id: graph-types-state
-    content: Add edge model, port keys per block type, extend placedBlocks with split/join params, wire state in App
-    status: completed
-  - id: port-ui
-    content: Replace decorative notches with interactive PortHandle on canvas; add missing top/bottom rows for formatConvert, join, ops, output
-    status: completed
-  - id: svg-wires
-    content: "Canvas SVG layer: Bézier paths, rubber-band drag, hit targets, re-measure on scroll/resize/move"
-    status: completed
-  - id: eval-pipeline
-    content: Implement evaluate-graph (DAG, bytes), connect blocks to computed wired inputs + onParamsChange
-    status: completed
-  - id: css-a11y
-    content: Adjust CSS (pointer-events, focus/hover) for ports without breaking palette or canvas pan
-    status: completed
+    - id: graph-types-state
+      content: Add edge model, port keys per block type, extend placedBlocks with split/join params, wire state in App
+      status: completed
+    - id: port-ui
+      content: Replace decorative notches with interactive PortHandle on canvas; add missing top/bottom rows for formatConvert, join, ops, output
+      status: completed
+    - id: svg-wires
+      content: 'Canvas SVG layer: Bézier paths, rubber-band drag, hit targets, re-measure on scroll/resize/move'
+      status: completed
+    - id: eval-pipeline
+      content: Implement evaluate-graph (DAG, bytes), connect blocks to computed wired inputs + onParamsChange
+      status: completed
+    - id: css-a11y
+      content: Adjust CSS (pointer-events, focus/hover) for ports without breaking palette or canvas pan
+      status: completed
 isProject: false
 ---
 
@@ -74,14 +74,14 @@ flowchart TB
 
 To wire **and** propagate data, dynamic converters need **stable port counts** and **evaluable inputs**:
 
-| Block kind | Inputs | Outputs | Notes |
-|------------|--------|---------|--------|
-| Input (binary/hex/decimal/ascii) | 0 | 1× `out` | Replace `::after` with a real port element for canvas instances |
-| formatConvert | 1× `in` | 1× `out` | Add split-style notch row top/bottom for placed blocks |
-| splitIntoLots | 1× `in` | N× `out:i` | Already has notch rows; enable pointer events; N from lifted param |
-| joinLots | K× `in:i` | 1× `out` | Add notch UI; K from lifted param |
-| Operations | 2× `in:a`, `in:b` (or 3 for mod) | 1× `out` | Add simple top/bottom ports for placed blocks |
-| output | 1× `in` | 0 | Top input only |
+| Block kind                       | Inputs                           | Outputs    | Notes                                                              |
+| -------------------------------- | -------------------------------- | ---------- | ------------------------------------------------------------------ |
+| Input (binary/hex/decimal/ascii) | 0                                | 1× `out`   | Replace `::after` with a real port element for canvas instances    |
+| formatConvert                    | 1× `in`                          | 1× `out`   | Add split-style notch row top/bottom for placed blocks             |
+| splitIntoLots                    | 1× `in`                          | N× `out:i` | Already has notch rows; enable pointer events; N from lifted param |
+| joinLots                         | K× `in:i`                        | 1× `out`   | Add notch UI; K from lifted param                                  |
+| Operations                       | 2× `in:a`, `in:b` (or 3 for mod) | 1× `out`   | Add simple top/bottom ports for placed blocks                      |
+| output                           | 1× `in`                          | 0          | Top input only                                                     |
 
 **Placed block shape** extension in App (minimal fields per type):
 
@@ -95,9 +95,9 @@ Pass **`blockId`**, **`placement="canvas"` vs `"palette"`**, **`params`**, and *
 ## Data propagation (bytes as canonical wire value)
 
 - Define a small **`evaluateGraph(placedBlocks, edges)`** (new module e.g. [`../src/graph/evaluate-graph.js`](../src/graph/evaluate-graph.js)):
-  - Parse **input blocks** using existing helpers from [`../src/converter-block/format-bytes.js`](../src/converter-block/format-bytes.js) (`parseBytesFromFormat` per block type).
-  - Build adjacency from edges; **topological sort**; detect cycles (fail evaluation with clear fallbacks).
-  - For each node in order, compute **outputs as `Uint8Array`** (or shared empty sentinel): format convert, split/join semantics using existing parse/serialize where possible; operations use [`../src/operations-block/operation-definitions.js`](../src/operations-block/operation-definitions.js) semantics once operands exist (may require small eval helpers per op).
+    - Parse **input blocks** using existing helpers from [`../src/converter-block/format-bytes.js`](../src/converter-block/format-bytes.js) (`parseBytesFromFormat` per block type).
+    - Build adjacency from edges; **topological sort**; detect cycles (fail evaluation with clear fallbacks).
+    - For each node in order, compute **outputs as `Uint8Array`** (or shared empty sentinel): format convert, split/join semantics using existing parse/serialize where possible; operations use [`../src/operations-block/operation-definitions.js`](../src/operations-block/operation-definitions.js) semantics once operands exist (may require small eval helpers per op).
 - Pass **computed inputs** into canvas blocks: e.g. format convert **prefers wired bytes** when an edge hits `in`, else falls back to manual textarea; join expects multiple inputs ordered by `in:0…`.
 - **Output block**: display serialized representation of wired input (e.g. hex) for quick verification.
 

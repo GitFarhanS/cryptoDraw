@@ -1,27 +1,27 @@
-import { useId, useState } from 'react'
-import PortHandle from '../port-handle'
-import { attachPaletteDragData } from './palette-drag'
+import { useId, useState } from 'react';
+import PortHandle from '../port-handle';
+import { attachPaletteDragData } from './palette-drag';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
 }
 
 function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-decimal-title`
-    const isCanvas = Boolean(block)
-    const [paletteValue, setPaletteValue] = useState('')
-    const value = isCanvas ? (block.text ?? '') : paletteValue
+    const id = useId();
+    const titleId = `${id}-decimal-title`;
+    const isCanvas = Boolean(block);
+    const [paletteValue, setPaletteValue] = useState('');
+    const value = isCanvas ? (block.text ?? '') : paletteValue;
 
     const setValue = (next: string) => {
         if (isCanvas) {
-            onBlockPatch?.({ text: next })
+            onBlockPatch?.({ text: next });
         } else {
-            setPaletteValue(next)
+            setPaletteValue(next);
         }
-    }
+    };
 
     const sectionClass = [
         'input-block',
@@ -29,7 +29,7 @@ function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readon
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
@@ -49,7 +49,7 @@ function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readon
                 className="input-block-field input-block-field--mono"
                 value={value}
                 onChange={(e) => {
-                    const filtered = e.target.value.replaceAll(/[^0-9 ,]/g, "");
+                    const filtered = e.target.value.replaceAll(/[^0-9 ,]/g, '');
                     setValue(filtered);
                 }}
                 placeholder="e.g. 72,101,108,108,111"
@@ -62,7 +62,7 @@ function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readon
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default DecimalBlock
+export default DecimalBlock;

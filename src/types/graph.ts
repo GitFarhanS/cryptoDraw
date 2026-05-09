@@ -1,39 +1,39 @@
-export type PortKind = 'input' | 'output'
-export type DataFormat = 'binary' | 'ascii' | 'hex' | 'decimal'
+export type PortKind = 'input' | 'output';
+export type DataFormat = 'binary' | 'ascii' | 'hex' | 'decimal';
 
 export interface GraphEdge {
-    id: string
+    id: string;
     from: {
-        blockId: string
-        portKey: string
-    }
+        blockId: string;
+        portKey: string;
+    };
     to: {
-        blockId: string
-        portKey: string
-    }
+        blockId: string;
+        portKey: string;
+    };
 }
 
 export interface PlacedBlockRecord {
-    id: string
-    type: string
-    x: number
-    y: number
-    blockCount?: number
-    joinCount?: number
-    text?: string
-    fcText?: string
-    fcInputFormat?: DataFormat
-    fcOutputFormat?: DataFormat
-    opDisplayMode?: 'auto' | 'manual'
-    opDisplayFormat?: DataFormat
-    opShiftMode?: 'logical' | 'circular'
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+    blockCount?: number;
+    joinCount?: number;
+    text?: string;
+    fcText?: string;
+    fcInputFormat?: DataFormat;
+    fcOutputFormat?: DataFormat;
+    opDisplayMode?: 'auto' | 'manual';
+    opDisplayFormat?: DataFormat;
+    opShiftMode?: 'logical' | 'circular';
 }
 
 export interface WireDragState {
-    fromBlockId: string
-    fromPortKey: string
-    fromKind: PortKind
-    pointerId: number
-    clientX: number
-    clientY: number
+    fromBlockId: string;
+    fromPortKey: string;
+    fromKind: PortKind;
+    pointerId: number;
+    clientX: number;
+    clientY: number;
 }

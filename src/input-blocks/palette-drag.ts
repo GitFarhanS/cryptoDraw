@@ -1,18 +1,18 @@
-import { INPUT_BLOCK_DRAG_MIME, isPlacedBlockType } from './drag-constants'
+import { INPUT_BLOCK_DRAG_MIME, isPlacedBlockType } from './drag-constants';
 
 export function attachPaletteDragData(event: DragEvent & any, blockType: string) {
-    const { target } = event
+    const { target } = event;
     if (
         target instanceof Element &&
         target.closest('input, textarea, select, button, [contenteditable="true"]')
     ) {
-        event.preventDefault()
-        return
+        event.preventDefault();
+        return;
     }
     if (!isPlacedBlockType(blockType)) {
-        event.preventDefault()
-        return
+        event.preventDefault();
+        return;
     }
-    event.dataTransfer.setData(INPUT_BLOCK_DRAG_MIME, blockType)
-    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData(INPUT_BLOCK_DRAG_MIME, blockType);
+    event.dataTransfer.effectAllowed = 'copy';
 }
