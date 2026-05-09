@@ -79,10 +79,25 @@ function resolveColorScheme(theme: string) {
     return 'light'
 }
 
+function readPanelFromQuery() {
+    if (globalThis.window === undefined) {
+        return null
+    }
+
+    try {
+        const params = new URLSearchParams(globalThis.window.location.search)
+        const panel = params.get('panel')
+        return panel && panel.trim() ? panel : null
+    } catch {
+        return null
+    }
+}
+
 function App() {
     const [placedBlocks, setPlacedBlocks] = useState<any[]>([])
     const [edges, setEdges] = useState<any[]>([])
-    const [sidePanelOpen, setSidePanelOpen] = useState(false)
+    const initialPanel = useMemo(() => readPanelFromQuery(), [])
+    const [sidePanelOpen, setSidePanelOpen] = useState(() => Boolean(initialPanel))
     const [theme, setTheme] = useState<string>(readStoredTheme)
     const [zoom, setZoom] = useState<number>(1)
     const [viewport, setViewport] = useState({
@@ -640,6 +655,7 @@ function App() {
                 <SidePanelExpandablePanels
                     onExportFlowchart={handleExportFlowchart}
                     onImportFlowchart={handleImportFlowchart}
+                    defaultExpandedPanel={initialPanel}
                 />
             </SidePanel>
         </>
