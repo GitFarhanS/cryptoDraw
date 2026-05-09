@@ -7,7 +7,7 @@ import OperationsBlocks from './operations-block/operations-blocks'
 import OutputBlock from './output-block/output-block'
 
 const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Flowchart', 'Templates']
-const TONE_COUNT = 5
+const VISUAL_TONE_COUNT = 5
 
 interface Props {
     onExportFlowchart: () => string
@@ -57,7 +57,7 @@ function SidePanelExpandablePanels({
     if (expandedIndex !== null) {
         const title = PANELS[expandedIndex]
         const titleId = `${baseId}-title-${expandedIndex}`
-        const toneIndex = expandedIndex % TONE_COUNT
+        const toneIndex = expandedIndex % VISUAL_TONE_COUNT
 
         return (
             <div className="sp-panels sp-panels--expanded">
@@ -95,7 +95,7 @@ function SidePanelExpandablePanels({
                     key={label}
                     type="button"
                     className="sp-panel-row"
-                    data-tone={index % TONE_COUNT}
+                    data-tone={index % VISUAL_TONE_COUNT}
                     onClick={() => setExpandedIndex(index)}
                     aria-expanded={false}
                 >

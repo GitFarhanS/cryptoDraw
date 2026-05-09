@@ -59,11 +59,18 @@ const TEMPLATE_LAYOUT = {
     output: { x: 640, y: 220 },
 }
 
+function createTemplateId() {
+    if (globalThis.crypto?.randomUUID) {
+        return globalThis.crypto.randomUUID()
+    }
+    return `template-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 function buildTemplateFlowchart(template: CipherTemplate) {
-    const messageId = crypto.randomUUID()
-    const keyId = crypto.randomUUID()
-    const opId = crypto.randomUUID()
-    const outputId = crypto.randomUUID()
+    const messageId = createTemplateId()
+    const keyId = createTemplateId()
+    const opId = createTemplateId()
+    const outputId = createTemplateId()
 
     const placedBlocks: PlacedBlockRecord[] = [
         {
@@ -99,17 +106,17 @@ function buildTemplateFlowchart(template: CipherTemplate) {
 
     const edges: GraphEdge[] = [
         {
-            id: crypto.randomUUID(),
+            id: createTemplateId(),
             from: { blockId: messageId, portKey: 'out' },
             to: { blockId: opId, portKey: 'in:a' },
         },
         {
-            id: crypto.randomUUID(),
+            id: createTemplateId(),
             from: { blockId: keyId, portKey: 'out' },
             to: { blockId: opId, portKey: 'in:b' },
         },
         {
-            id: crypto.randomUUID(),
+            id: createTemplateId(),
             from: { blockId: opId, portKey: 'out' },
             to: { blockId: outputId, portKey: 'in' },
         },
