@@ -13,6 +13,10 @@ import {
   wouldCreateCycle,
 } from './graph/edge-types'
 import { evaluateGraph } from './graph/evaluate-graph'
+import {
+  parseFlowchartFromBase64,
+  serializeFlowchartToBase64,
+} from './graph/flowchart-io'
 import { createPlacedBlock } from './graph/placed-block-defaults'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
@@ -568,6 +572,21 @@ function App() {
     [registerAnchor, onPortPointerDown, wireDrag, zoom],
   )
 
+  const handleExportFlowchart = useCallback(
+    () => serializeFlowchartToBase64(placedBlocks, edges),
+    [placedBlocks, edges],
+  )
+
+  const handleImportFlowchart = useCallback(
+    (base64Text) => {
+      const parsed = parseFlowchartFromBase64(base64Text)
+      setPlacedBlocks(parsed.placedBlocks)
+      setEdges(parsed.edges)
+      bumpLayout()
+    },
+    [bumpLayout],
+  )
+
   return (
     <>
       <div ref={outerExtentRef} className="canvas-scroll-extent" style={outerExtentStyle}>
@@ -633,7 +652,10 @@ function App() {
             ))}
           </select>
         </section>
-        <SidePanelExpandablePanels />
+        <SidePanelExpandablePanels
+          onExportFlowchart={handleExportFlowchart}
+          onImportFlowchart={handleImportFlowchart}
+        />
       </SidePanel>
     </>
   )

@@ -548,9 +548,9 @@ body[data-theme='solarized-dark'] {
 .sp-panel-expanded-close {
   flex-shrink: 0;
   padding: 6px 10px;
-  border: 1px solid var(--chip-border);
+  border: 1px solid var(--panel-border-strong);
   border-radius: 6px;
-  background: var(--chip-bg);
+  background: var(--panel-surface-strong);
   color: var(--chip-fg);
   font: inherit;
   font-size: 13px;
@@ -564,6 +564,11 @@ body[data-theme='solarized-dark'] {
 .sp-panel-expanded-close:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.sp-panel-expanded[data-tone='3'] .sp-panel-expanded-close,
+.sp-panel-expanded[data-tone='4'] .sp-panel-expanded-close {
+  background: var(--panel-surface-soft);
 }
 
 .sp-panel-expanded-title {
@@ -659,6 +664,114 @@ body[data-theme='solarized-dark'] .theme-select {
 .theme-select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.flowchart-io {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flowchart-io-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.flowchart-io-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flowchart-io-button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #7a7d86;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.flowchart-io-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.flowchart-io-button:focus-visible {
+  outline: 2px solid #2f6dff;
+  outline-offset: 2px;
+}
+
+.flowchart-io-file-input {
+  display: none;
+}
+
+.flowchart-io-status {
+  margin: 0;
+  font-size: 12px;
+}
+
+.flowchart-io-status--success {
+  color: #0b5c2f;
+}
+
+.flowchart-io-status--error {
+  color: #8c1f1f;
+}
+
+.flowchart-io-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(21, 26, 38, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.flowchart-io-dialog {
+  width: min(540px, calc(100vw - 32px));
+  border: 1px solid #8d919a;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flowchart-io-dialog-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c2e33;
+}
+
+.flowchart-io-dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.flowchart-io-dialog .input-block-field {
+  color: #141821;
+  background: #ffffff;
+}
+
+.flowchart-io-dialog .flowchart-io-button {
+  background: #eef2f8;
+  color: #12151c;
+  border-color: #5f6470;
+  text-align: center;
+  font-weight: 600;
+}
+
+.flowchart-io-dialog .flowchart-io-button:hover {
+  background: #e4e9f2;
 }
 
 .canvas-placed-block {

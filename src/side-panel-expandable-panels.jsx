@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import ConverterBlocks from './converter-block/converter-blocks'
+import FlowchartIoPanel from './flowchart-io-panel'
 import InputBlocks from './input-blocks/input-blocks'
 import OperationsBlocks from './operations-block/operations-blocks'
 import OutputBlock from './output-block/output-block'
@@ -8,11 +9,11 @@ const PANELS = [
   'Input',
   'Converter',
   'Operations',
-  'Panel 4',
+  'Flowchart',
   'Output',
 ]
 
-function SidePanelExpandablePanels() {
+function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart }) {
   const baseId = useId()
   const [expandedIndex, setExpandedIndex] = useState(null)
 
@@ -49,6 +50,11 @@ function SidePanelExpandablePanels() {
               <ConverterBlocks />
             ) : title === 'Operations' ? (
               <OperationsBlocks />
+            ) : title === 'Flowchart' ? (
+              <FlowchartIoPanel
+                onExportFlowchart={onExportFlowchart}
+                onImportFlowchart={onImportFlowchart}
+              />
             ) : title === 'Output' ? (
               <OutputBlock draggableToCanvas />
             ) : (
