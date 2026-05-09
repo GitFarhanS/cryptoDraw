@@ -96,7 +96,7 @@ function readPanelFromQuery() {
 function App() {
     const [placedBlocks, setPlacedBlocks] = useState<any[]>([])
     const [edges, setEdges] = useState<any[]>([])
-    const initialPanel = useMemo(() => readPanelFromQuery(), [])
+    const [initialPanel] = useState(() => readPanelFromQuery())
     const [sidePanelOpen, setSidePanelOpen] = useState(() => Boolean(initialPanel))
     const [theme, setTheme] = useState<string>(readStoredTheme)
     const [zoom, setZoom] = useState<number>(1)
