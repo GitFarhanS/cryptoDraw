@@ -902,7 +902,7 @@ body[data-theme='solarized-dark'] .theme-select {
     gap: 4px;
 }
 
-.block-context-menu__action {
+.context-menu__action {
     width: 100%;
     padding: 8px 10px;
     border: none;
@@ -915,11 +915,11 @@ body[data-theme='solarized-dark'] .theme-select {
     cursor: pointer;
 }
 
-.block-context-menu__action:hover {
+.context-menu__action:hover {
     background: var(--panel-hover);
 }
 
-.block-context-menu__action:focus-visible {
+.context-menu__action:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
 }

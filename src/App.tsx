@@ -576,9 +576,9 @@ function App() {
         }
 
         if (activeBlockContextMenu) {
-            blockContextMenuRef.current?.querySelector<HTMLButtonElement>('.block-context-menu__action')?.focus()
+            blockContextMenuRef.current?.querySelector<HTMLButtonElement>('.context-menu__action')?.focus()
         } else {
-            boardContextMenuRef.current?.querySelector<HTMLButtonElement>('.block-context-menu__action')?.focus()
+            boardContextMenuRef.current?.querySelector<HTMLButtonElement>('.context-menu__action')?.focus()
         }
 
         const onPointerDown = (event: PointerEvent) => {
@@ -616,7 +616,7 @@ function App() {
         }
 
         const actions = Array.from(
-            event.currentTarget.querySelectorAll<HTMLButtonElement>('.block-context-menu__action'),
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('.context-menu__action'),
         )
         if (!actions.length) {
             return
@@ -1145,21 +1145,21 @@ function App() {
                 >
                     <button
                         type="button"
-                        className="block-context-menu__action"
+                        className="context-menu__action"
                         onClick={() => copyBlocksForContextMenu(activeBlockContextMenu.blockId)}
                     >
                         Copy
                     </button>
                     <button
                         type="button"
-                        className="block-context-menu__action"
+                        className="context-menu__action"
                         onClick={() => duplicateSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Duplicate
                     </button>
                     <button
                         type="button"
-                        className="block-context-menu__action"
+                        className="context-menu__action"
                         onClick={() => deleteSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Delete
@@ -1178,7 +1178,7 @@ function App() {
                 >
                     <button
                         type="button"
-                        className="block-context-menu__action"
+                        className="context-menu__action"
                         onClick={() => pasteFromClipboard({ x: boardContextMenu.canvasX, y: boardContextMenu.canvasY })}
                     >
                         Paste

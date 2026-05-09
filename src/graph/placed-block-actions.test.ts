@@ -52,4 +52,8 @@ describe('placed block actions', () => {
             { id: 'b', type: 'output', x: 350, y: 470 },
         ])
     })
+
+    it('returns an empty list when there are no copied blocks to anchor', () => {
+        expect(positionBlocksAtAnchor([], 120, 240)).toEqual([])
+    })
 })
