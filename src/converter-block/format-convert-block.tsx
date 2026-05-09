@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import PortHandle from '../port-handle'
 import { portRegistryKey } from '../graph/edge-types'
 import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { BYTE_FORMATS, parseBytesFromFormat, serializeBytesToFormat } from './format-bytes'
+import { BYTE_FORMATS, serializeBytesToFormat } from './format-bytes'
 
 interface Props {
     draggableToCanvas?: boolean
@@ -26,7 +26,6 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
     const [paletteState, setPaletteState] = useState({
         inputFormat: 'hex',
         outputFormat: 'ascii',
-        text: '',
     })
 
     const wiredInKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
@@ -35,7 +34,6 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
 
     const inputFormat = wiredInFormat ?? (isCanvas ? (block.fcInputFormat ?? 'hex') : paletteState.inputFormat)
     const outputFormat = isCanvas ? (block.fcOutputFormat ?? 'ascii') : paletteState.outputFormat
-    const text = isCanvas ? (block.fcText ?? '') : paletteState.text
 
     const setInputFormat = (next: string) => {
         if (isCanvas) {
@@ -53,32 +51,13 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
         }
     }
 
-    const setText = (next: string) => {
-        if (isCanvas) {
-            onBlockPatch?.({ fcText: next })
-        } else {
-            setPaletteState((s) => ({ ...s, text: next }))
-        }
-    }
-
     const wiredOutKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
     const evalBytes = isCanvas ? evaluation?.portBytes?.get(wiredOutKey) : undefined
-
-    let localOut = ''
-    let err = ''
-    if (text.trim() !== '') {
-        try {
-            const bytes = parseBytesFromFormat(inputFormat, text)
-            localOut = serializeBytesToFormat(outputFormat, bytes)
-        } catch (e: any) {
-            err = e instanceof Error ? e.message : 'Could not convert.'
-        }
-    }
 
     const displayOut =
         evalBytes === undefined
             ? wiredInBytes === undefined
-                ? localOut
+                ? ''
                 : serializeBytesToFormat(outputFormat, wiredInBytes)
             : serializeBytesToFormat(outputFormat, evalBytes)
 
@@ -155,23 +134,6 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                     </select>
                 </div>
             </div>
-            {!isCanvas ? (
-                <>
-                    <label className="converter-block-label" htmlFor={`${id}-in`}>
-                        Input
-                    </label>
-                    <textarea
-                        id={`${id}-in`}
-                        className="input-block-field input-block-field--mono"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        rows={3}
-                        spellCheck={false}
-                        aria-label="Input to convert"
-                    />
-                </>
-            ) : null}
-            {err && evalBytes === undefined ? <p className="input-block-hint">{err}</p> : null}
             <label className="converter-block-label" htmlFor={`${id}-out`}>
                 Output
             </label>
