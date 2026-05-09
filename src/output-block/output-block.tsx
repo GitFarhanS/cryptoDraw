@@ -46,9 +46,14 @@ function OutputBlock({ draggableToCanvas = false, block, evaluation }: Readonly<
             onDragStart={draggableToCanvas ? (event) => attachPaletteDragData(event, 'output') : undefined}
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {isCanvas ? (
+            {(isCanvas || draggableToCanvas) ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive">
-                    <PortHandle blockId={block.id} portKey="in" kind="input" interactive />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="in"
+                        kind="input"
+                        {...(isCanvas ? { interactive: true } : {})}
+                    />
                 </div>
             ) : null}
             <h3 className="input-block-title" id={titleId}>

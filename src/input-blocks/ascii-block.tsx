@@ -48,7 +48,10 @@ function AsciiBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly
             <textarea
                 className="input-block-field input-block-field--mono"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => {
+                    const filtered = e.target.value.replaceAll(/[^\x20-\x7E]/g, "");
+                    setValue(filtered);
+                }}
                 placeholder="e.g. Hello"
                 rows={3}
                 aria-label="ASCII text input"

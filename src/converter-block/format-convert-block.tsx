@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import PortHandle from '../port-handle'
 import { portRegistryKey } from '../graph/edge-types'
 import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { BYTE_FORMATS, parseBytesFromFormat, serializeBytesToFormat } from './format-bytes'
+import { BYTE_FORMATS, serializeBytesToFormat } from './format-bytes'
 
 interface Props {
     draggableToCanvas?: boolean
@@ -26,12 +26,14 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
     const [paletteState, setPaletteState] = useState({
         inputFormat: 'hex',
         outputFormat: 'ascii',
-        text: '',
     })
 
-    const inputFormat = isCanvas ? (block.fcInputFormat ?? 'hex') : paletteState.inputFormat
+    const wiredInKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
+    const wiredInBytes = isCanvas ? evaluation?.portBytes?.get(wiredInKey) : undefined
+    const wiredInFormat = isCanvas ? evaluation?.portFormats?.get(wiredInKey) : undefined
+
+    const inputFormat = wiredInFormat ?? (isCanvas ? (block.fcInputFormat ?? 'hex') : paletteState.inputFormat)
     const outputFormat = isCanvas ? (block.fcOutputFormat ?? 'ascii') : paletteState.outputFormat
-    const text = isCanvas ? (block.fcText ?? '') : paletteState.text
 
     const setInputFormat = (next: string) => {
         if (isCanvas) {
@@ -49,30 +51,15 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
         }
     }
 
-    const setText = (next: string) => {
-        if (isCanvas) {
-            onBlockPatch?.({ fcText: next })
-        } else {
-            setPaletteState((s) => ({ ...s, text: next }))
-        }
-    }
-
     const wiredOutKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
     const evalBytes = isCanvas ? evaluation?.portBytes?.get(wiredOutKey) : undefined
 
-    let localOut = ''
-    let err = ''
-    if (text.trim() !== '') {
-        try {
-            const bytes = parseBytesFromFormat(inputFormat, text)
-            localOut = serializeBytesToFormat(outputFormat, bytes)
-        } catch (e: any) {
-            err = e instanceof Error ? e.message : 'Could not convert.'
-        }
-    }
-
     const displayOut =
-        evalBytes === undefined ? localOut : serializeBytesToFormat(outputFormat, evalBytes)
+        evalBytes === undefined
+            ? wiredInBytes === undefined
+                ? ''
+                : serializeBytesToFormat(outputFormat, wiredInBytes)
+            : serializeBytesToFormat(outputFormat, evalBytes)
 
     const sectionClass = [
         'input-block',
@@ -92,17 +79,21 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
             }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {isCanvas ? (
+            {(isCanvas || draggableToCanvas) ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive">
-                    <PortHandle blockId={block.id} portKey="in" kind="input" interactive />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="in"
+                        kind="input"
+                        {...(isCanvas ? { interactive: true } : {})}
+                    />
                 </div>
             ) : null}
             <h3 className="input-block-title" id={titleId}>
                 Format convert
             </h3>
             <p className="input-block-hint">
-                Decode as one representation, encode as another (via bytes). Decimal: space- or
-                comma-separated values 0–255.
+                Decode as one representation, encode as another (via bytes). Decimal: comma-separated values 0–255.
             </p>
             <div className="converter-block-row">
                 <div>
@@ -114,6 +105,7 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                         className="input-block-field"
                         value={inputFormat}
                         onChange={(e) => setInputFormat(e.target.value)}
+                        disabled={typeof wiredInFormat === 'string'}
                         aria-label="Input format"
                     >
                         {BYTE_FORMATS.map((f) => (
@@ -142,23 +134,6 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                     </select>
                 </div>
             </div>
-            {(isCanvas || draggableToCanvas) ? null : (
-                <>
-                    <label className="converter-block-label" htmlFor={`${id}-in`}>
-                        Input
-                    </label>
-                    <textarea
-                        id={`${id}-in`}
-                        className="input-block-field input-block-field--mono"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        rows={3}
-                        spellCheck={false}
-                        aria-label="Input to convert"
-                    />
-                </>
-            )}
-            {err && evalBytes === undefined ? <p className="input-block-hint">{err}</p> : null}
             <label className="converter-block-label" htmlFor={`${id}-out`}>
                 Output
             </label>
@@ -171,9 +146,14 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                 spellCheck={false}
                 aria-label="Converted output"
             />
-            {isCanvas ? (
+            {(isCanvas || draggableToCanvas) ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
-                    <PortHandle blockId={block.id} portKey="out" kind="output" interactive />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="out"
+                        kind="output"
+                        {...(isCanvas ? { interactive: true } : {})}
+                    />
                 </div>
             ) : null}
         </section>

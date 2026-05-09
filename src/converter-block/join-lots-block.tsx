@@ -55,9 +55,28 @@ function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Reado
                 value={joinCount}
                 onChange={(e) => setJoinCount(Number(e.target.value))}
             />
-            {isCanvas ? (
+            {(isCanvas || draggableToCanvas) ? (
+                <div className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive ${joinCount > 1 ? 'notch-ports-row--spread' : ''
+                    }`.trim()}>
+                    {Array.from({ length: joinCount }).map((_, i) => (
+                        <PortHandle
+                            key={i}
+                            blockId={isCanvas ? block.id : ''}
+                            portKey={`in:${i}`}
+                            kind="input"
+                            {...(isCanvas ? { interactive: true } : {})}
+                        />
+                    ))}
+                </div>
+            ) : null}
+            {(isCanvas || draggableToCanvas) ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
-                    <PortHandle blockId={block.id} portKey="out" kind="output" interactive />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="out"
+                        kind="output"
+                        {...(isCanvas ? { interactive: true } : {})}
+                    />
                 </div>
             ) : null}
         </section>

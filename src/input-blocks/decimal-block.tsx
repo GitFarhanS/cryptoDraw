@@ -44,12 +44,15 @@ function DecimalBlock({ draggableToCanvas = false, block, onBlockPatch }: Readon
             <h3 className="input-block-title" id={titleId}>
                 Decimal
             </h3>
-            <p className="input-block-hint">Decimal byte values, space- or comma-separated.</p>
+            <p className="input-block-hint">Decimal byte values or comma-separated.</p>
             <textarea
                 className="input-block-field input-block-field--mono"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="e.g. 72 101 108 108 111"
+                onChange={(e) => {
+                    const filtered = e.target.value.replaceAll(/[^0-9 ,]/g, "");
+                    setValue(filtered);
+                }}
+                placeholder="e.g. 72,101,108,108,111"
                 rows={3}
                 aria-label="Decimal text input"
             />

@@ -40,6 +40,17 @@ function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: 
             onDragStart={draggableToCanvas ? (e) => attachPaletteDragData(e, 'splitIntoLots') : undefined}
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
+            {(isCanvas || draggableToCanvas) ? (
+                <div className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive`}>
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="in"
+                        kind="input"
+                        {...(isCanvas ? { interactive: true } : {})}
+                    />
+                </div>
+            ) : null}
+
             <h3 className="input-block-title" id={titleId}>
                 Split into lots
             </h3>
@@ -55,9 +66,20 @@ function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: 
                 value={blockCount}
                 onChange={(e) => setBlockCount(Number(e.target.value))}
             />
-            {isCanvas ? (
-                <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
-                    <PortHandle blockId={block.id} portKey="out" kind="output" interactive />
+            {(isCanvas || draggableToCanvas) ? (
+                <div
+                    className={`notch-ports-row notch-ports-row--bottom notch-ports-row--interactive ${blockCount > 1 ? 'notch-ports-row--spread' : ''
+                        }`.trim()}
+                >
+                    {Array.from({ length: blockCount }).map((_, i) => (
+                        <PortHandle
+                            key={i}
+                            blockId={isCanvas ? block.id : ''}
+                            portKey={`out:${i}`}
+                            kind="output"
+                            {...(isCanvas ? { interactive: true } : {})}
+                        />
+                    ))}
                 </div>
             ) : null}
         </section>

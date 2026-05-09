@@ -4,7 +4,7 @@ import SplitIntoLotsBlock from './split-into-lots-block'
 
 function ConverterBlocks() {
     return (
-        <div className="input-blocks">
+        <div className="input-blocks input-blocks--sidebar">
             <SplitIntoLotsBlock draggableToCanvas />
             <JoinLotsBlock draggableToCanvas />
             <FormatConvertBlock draggableToCanvas />

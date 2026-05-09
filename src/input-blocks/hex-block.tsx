@@ -48,7 +48,10 @@ function HexBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<P
             <textarea
                 className="input-block-field input-block-field--mono"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => {
+                    const filtered = e.target.value.replaceAll(/[^0-9a-fA-F\s]/g, "");
+                    setValue(filtered);
+                }}
                 placeholder="e.g. 48656c6c6f"
                 rows={3}
                 aria-label="Hex text input"
