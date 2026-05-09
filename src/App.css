@@ -352,6 +352,63 @@
   color: rgba(35, 37, 44, 0.82);
 }
 
+.flowchart-io {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flowchart-io-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.flowchart-io-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flowchart-io-button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #7a7d86;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.flowchart-io-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.flowchart-io-button:focus-visible {
+  outline: 2px solid #2f6dff;
+  outline-offset: 2px;
+}
+
+.flowchart-io-file-input {
+  display: none;
+}
+
+.flowchart-io-status {
+  margin: 0;
+  font-size: 12px;
+}
+
+.flowchart-io-status--success {
+  color: #0b5c2f;
+}
+
+.flowchart-io-status--error {
+  color: #8c1f1f;
+}
+
 .canvas-placed-block {
   position: absolute;
   z-index: 1;

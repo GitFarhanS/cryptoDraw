@@ -13,6 +13,7 @@ import {
   wouldCreateCycle,
 } from './graph/edge-types'
 import { evaluateGraph } from './graph/evaluate-graph'
+import { parseFlowchartFromText, serializeFlowchart } from './graph/flowchart-io'
 import { createPlacedBlock } from './graph/placed-block-defaults'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
@@ -470,6 +471,33 @@ function App() {
     [registerAnchor, onPortPointerDown, wireDrag, zoom],
   )
 
+  const handleExportFlowchart = useCallback(() => {
+    const content = serializeFlowchart(placedBlocks, edges)
+    const blob = new Blob([content], { type: 'application/json' })
+    const href = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = href
+    anchor.download = `cryptodraw-flowchart-${new Date()
+      .toISOString()
+      .replaceAll(':', '-')
+      .replaceAll('.', '-')}.json`
+    document.body.append(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(href)
+  }, [placedBlocks, edges])
+
+  const handleImportFlowchart = useCallback(
+    async (file) => {
+      const text = await file.text()
+      const parsed = parseFlowchartFromText(text)
+      setPlacedBlocks(parsed.placedBlocks)
+      setEdges(parsed.edges)
+      bumpLayout()
+    },
+    [bumpLayout],
+  )
+
   return (
     <>
       <div ref={outerExtentRef} className="canvas-scroll-extent" style={outerExtentStyle}>
@@ -514,7 +542,10 @@ function App() {
         onNavigate={navigateFromMinimap}
       />
       <SidePanel open={sidePanelOpen} onOpenChange={setSidePanelOpen}>
-        <SidePanelExpandablePanels />
+        <SidePanelExpandablePanels
+          onExportFlowchart={handleExportFlowchart}
+          onImportFlowchart={handleImportFlowchart}
+        />
       </SidePanel>
     </>
   )
