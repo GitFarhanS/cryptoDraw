@@ -8,7 +8,7 @@ Thanks to everyone who has contributed code, ideas, or review feedback to crypto
 
 ## Contributors
 
-- **Arman Shaikh** ([@Arman511](https://github.com/Arman511))
+- **Arman Shaikh** ([@Arman511](https://github.com/Arman511)) — project co-author and maintainer.
 
 ## How to get on this list
 
