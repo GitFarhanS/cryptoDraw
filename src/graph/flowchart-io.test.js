@@ -34,6 +34,16 @@ describe('flowchart import/export', () => {
     expect(imported.edges).toEqual(edges)
   })
 
+  it('parses legacy uncompressed Base64 flowchart data', () => {
+    const placedBlocks = [{ id: 'src', type: 'ascii', x: 120, y: 200, text: 'AB' }]
+    const edges = []
+    const exportedRaw = serializeFlowchart(placedBlocks, edges)
+    const base64 = Buffer.from(exportedRaw, 'utf8').toString('base64')
+    const imported = parseFlowchartFromBase64(base64)
+    expect(imported.placedBlocks).toEqual(placedBlocks)
+    expect(imported.edges).toEqual(edges)
+  })
+
   it('keeps only the latest edge for an input port on import', () => {
     const imported = parseFlowchartFromText(
       JSON.stringify({

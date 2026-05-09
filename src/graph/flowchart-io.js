@@ -1,3 +1,4 @@
+import { deflateSync, inflateSync } from 'fflate'
 import { isPlacedBlockType } from '../input-blocks/drag-constants'
 import { isEdgeValidForBlocks, upsertEdgeForInputPort } from './edge-types'
 
@@ -20,7 +21,9 @@ export function serializeFlowchart(placedBlocks, edges) {
 }
 
 export function serializeFlowchartToBase64(placedBlocks, edges) {
-  return utf8ToBase64(serializeFlowchart(placedBlocks, edges))
+  const jsonText = serializeFlowchart(placedBlocks, edges)
+  const compressed = deflateSync(new TextEncoder().encode(jsonText), { level: 9 })
+  return bytesToBase64(compressed)
 }
 
 export function parseFlowchartFromBase64(base64Text) {
@@ -28,13 +31,22 @@ export function parseFlowchartFromBase64(base64Text) {
   if (!isValidBase64Text(trimmed)) {
     throw new Error('Could not decode Base64 flowchart text.')
   }
-  let decoded
+
+  let data
   try {
-    decoded = base64ToUtf8(trimmed)
+    data = base64ToBytes(trimmed)
   } catch {
     throw new Error('Could not decode Base64 flowchart text.')
   }
-  return parseFlowchartFromText(decoded)
+
+  let jsonText
+  try {
+    jsonText = new TextDecoder().decode(inflateSync(data))
+  } catch {
+    jsonText = bytesToUtf8(data)
+  }
+
+  return parseFlowchartFromText(jsonText)
 }
 
 export function parseFlowchartFromText(jsonText) {
@@ -209,6 +221,36 @@ function utf8ToBase64(text) {
     chars.push(String.fromCharCode(byte))
   }
   return btoa(chars.join(''))
+}
+
+function bytesToBase64(bytes) {
+  const BufferCtor = globalThis.Buffer
+  if (BufferCtor) {
+    return BufferCtor.from(bytes).toString('base64')
+  }
+
+  const chars = []
+  for (const byte of bytes) {
+    chars.push(String.fromCharCode(byte))
+  }
+  return btoa(chars.join(''))
+}
+
+function base64ToBytes(base64Text) {
+  const BufferCtor = globalThis.Buffer
+  if (BufferCtor) {
+    return BufferCtor.from(base64Text, 'base64')
+  }
+  const binary = atob(base64Text)
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
+}
+
+function bytesToUtf8(bytes) {
+  const BufferCtor = globalThis.Buffer
+  if (BufferCtor) {
+    return BufferCtor.from(bytes).toString('utf8')
+  }
+  return new TextDecoder().decode(bytes)
 }
 
 function base64ToUtf8(base64Text) {
