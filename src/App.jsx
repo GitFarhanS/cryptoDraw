@@ -14,7 +14,7 @@ import {
 } from './graph/edge-types'
 import { evaluateGraph } from './graph/evaluate-graph'
 import { createPlacedBlock } from './graph/placed-block-defaults'
-import { duplicatePlacedBlock } from './graph/placed-block-actions'
+import { duplicatePlacedBlock, removePlacedBlockAndEdges } from './graph/placed-block-actions'
 import MiniMap from './mini-map'
 import SidePanel from './side-panel'
 import SidePanelExpandablePanels from './side-panel-expandable-panels'
@@ -58,6 +58,7 @@ function App() {
 
   const wireDragRef = useRef(wireDrag)
   const placedBlocksRef = useRef(placedBlocks)
+  const edgesRef = useRef(edges)
 
   const canvasRef = useRef(/** @type {HTMLDivElement | null} */ (null))
   const outerExtentRef = useRef(/** @type {HTMLDivElement | null} */ (null))
@@ -136,14 +137,13 @@ function App() {
 
   const deletePlacedBlock = useCallback(
     (blockId) => {
-      setPlacedBlocks((prevBlocks) =>
-        prevBlocks.filter((block) => block.id !== blockId),
+      const next = removePlacedBlockAndEdges(
+        placedBlocksRef.current,
+        edgesRef.current,
+        blockId,
       )
-      setEdges((prevEdges) =>
-        prevEdges.filter(
-          (edge) => edge.from.blockId !== blockId && edge.to.blockId !== blockId,
-        ),
-      )
+      setPlacedBlocks(next.placedBlocks)
+      setEdges(next.edges)
       closeBlockContextMenu()
       bumpLayout()
     },
@@ -184,6 +184,10 @@ function App() {
   useEffect(() => {
     placedBlocksRef.current = placedBlocks
   }, [placedBlocks])
+
+  useEffect(() => {
+    edgesRef.current = edges
+  }, [edges])
 
   useEffect(() => {
     if (!wireDrag) {
@@ -584,13 +588,11 @@ function App() {
       {blockContextMenu ? (
         <div
           className="block-context-menu"
-          role="menu"
           aria-label="Block actions"
           style={{ left: blockContextMenu.clientX, top: blockContextMenu.clientY }}
         >
           <button
             type="button"
-            role="menuitem"
             className="block-context-menu__action"
             onClick={() => duplicateBlock(blockContextMenu.blockId)}
           >
@@ -598,7 +600,6 @@ function App() {
           </button>
           <button
             type="button"
-            role="menuitem"
             className="block-context-menu__action"
             onClick={() => deletePlacedBlock(blockContextMenu.blockId)}
           >
