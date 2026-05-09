@@ -445,21 +445,18 @@ body[data-theme='solarized-dark'] {
 }
 
 .sp-panel-row[data-tone='3'],
-.sp-panel-row[data-tone='4'],
-.sp-panel-expanded[data-tone='3'],
-.sp-panel-expanded[data-tone='4'] {
+.sp-panel-row[data-tone='4'] {
+    color: var(--tone-strong-fg);
+}
+
+.sp-panel-expanded[data-tone='3'] .sp-panel-expanded-title,
+.sp-panel-expanded[data-tone='4'] .sp-panel-expanded-title {
     color: var(--tone-strong-fg);
 }
 
 .sp-panel-row[data-tone='3'] .sp-panel-row-chevron,
 .sp-panel-row[data-tone='4'] .sp-panel-row-chevron {
     color: var(--tone-strong-chevron);
-}
-
-.sp-panel-expanded[data-tone='3'] .sp-panel-expanded-close,
-.sp-panel-expanded[data-tone='4'] .sp-panel-expanded-close {
-    color: var(--tone-strong-fg);
-    border-color: var(--tone-strong-border);
 }
 
 .sp-panel-expanded[data-tone='3'] .sp-panel-expanded-placeholder,
@@ -718,11 +715,30 @@ body[data-theme='solarized-dark'] .theme-select {
     color: #8c1f1f;
 }
 
+.sp-panel-expanded[data-tone='4'] .flowchart-io {
+    color: var(--tone-strong-fg);
+}
+
+.sp-panel-expanded[data-tone='4'] .flowchart-io-status--success {
+    color: #d8f4de;
+}
+
+.sp-panel-expanded[data-tone='4'] .flowchart-io-status--error {
+    color: #ffd8d8;
+}
+
 .flowchart-io-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(21, 26, 38, 0.4);
+    border: 0;
+    padding: 0;
+}
+
+.flowchart-io-dialog-wrapper {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: rgba(21, 26, 38, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -730,7 +746,11 @@ body[data-theme='solarized-dark'] .theme-select {
 }
 
 .flowchart-io-dialog {
+    margin: 0;
+    position: relative;
+    z-index: 1;
     width: min(540px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
     border: 1px solid #8d919a;
     border-radius: 8px;
     background: #ffffff;
@@ -738,6 +758,7 @@ body[data-theme='solarized-dark'] .theme-select {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    overflow: auto;
 }
 
 .flowchart-io-dialog-title {
@@ -879,6 +900,10 @@ body[data-theme='solarized-dark'] .theme-select {
 
 .input-block--palette-draggable {
     cursor: grab;
+}
+
+body[data-theme='light'] .input-block--palette-draggable {
+    background: var(--block-surface-strong);
 }
 
 .input-block--palette-draggable:active {

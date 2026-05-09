@@ -5,7 +5,7 @@ import InputBlocks from './input-blocks/input-blocks'
 import OperationsBlocks from './operations-block/operations-blocks'
 import OutputBlock from './output-block/output-block'
 
-const PANELS = ['Input', 'Converter', 'Operations', 'Flowchart', 'Output']
+const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Flowchart']
 
 interface Props {
     onExportFlowchart: () => string
