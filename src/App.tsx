@@ -584,7 +584,7 @@ function App() {
         const onPointerDown = (event: PointerEvent) => {
             if (
                 event.target instanceof Element &&
-                event.target.closest('.block-context-menu')
+                event.target.closest('.context-menu')
             ) {
                 return
             }
@@ -1136,7 +1136,7 @@ function App() {
             {activeBlockContextMenu ? (
                 <div
                     ref={blockContextMenuRef}
-                    className="block-context-menu"
+                    className="context-menu"
                     role="menu"
                     tabIndex={-1}
                     aria-label="Block actions"
@@ -1169,7 +1169,7 @@ function App() {
             {boardContextMenu ? (
                 <div
                     ref={boardContextMenuRef}
-                    className="block-context-menu"
+                    className="context-menu"
                     role="menu"
                     tabIndex={-1}
                     aria-label="Board actions"
