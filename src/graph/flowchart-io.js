@@ -19,6 +19,24 @@ export function serializeFlowchart(placedBlocks, edges) {
   )
 }
 
+export function serializeFlowchartToBase64(placedBlocks, edges) {
+  return utf8ToBase64(serializeFlowchart(placedBlocks, edges))
+}
+
+export function parseFlowchartFromBase64(base64Text) {
+  const trimmed = base64Text.trim()
+  if (!isValidBase64Text(trimmed)) {
+    throw new Error('Could not decode Base64 flowchart text.')
+  }
+  let decoded
+  try {
+    decoded = base64ToUtf8(trimmed)
+  } catch {
+    throw new Error('Could not decode Base64 flowchart text.')
+  }
+  return parseFlowchartFromText(decoded)
+}
+
 export function parseFlowchartFromText(jsonText) {
   let parsed
   try {
@@ -178,4 +196,34 @@ function clampInt(value, min, max) {
     return min
   }
   return Math.min(max, Math.max(min, Math.floor(n)))
+}
+
+function utf8ToBase64(text) {
+  const BufferCtor = globalThis.Buffer
+  if (BufferCtor) {
+    return BufferCtor.from(text, 'utf8').toString('base64')
+  }
+  const bytes = new TextEncoder().encode(text)
+  let binary = ''
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+  return btoa(binary)
+}
+
+function base64ToUtf8(base64Text) {
+  const BufferCtor = globalThis.Buffer
+  if (BufferCtor) {
+    return BufferCtor.from(base64Text, 'base64').toString('utf8')
+  }
+  const binary = atob(base64Text)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+function isValidBase64Text(value) {
+  if (!value || value.length % 4 !== 0) {
+    return false
+  }
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(value)
 }

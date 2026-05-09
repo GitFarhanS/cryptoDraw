@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { parseFlowchartFromText, serializeFlowchart } from './flowchart-io'
+import {
+  parseFlowchartFromBase64,
+  parseFlowchartFromText,
+  serializeFlowchart,
+  serializeFlowchartToBase64,
+} from './flowchart-io'
 
 describe('flowchart import/export', () => {
   it('serializes and parses a valid flowchart', () => {
@@ -16,6 +21,15 @@ describe('flowchart import/export', () => {
     const exported = serializeFlowchart(placedBlocks, edges)
     const imported = parseFlowchartFromText(exported)
 
+    expect(imported.placedBlocks).toEqual(placedBlocks)
+    expect(imported.edges).toEqual(edges)
+  })
+
+  it('serializes and parses a valid flowchart as base64', () => {
+    const placedBlocks = [{ id: 'src', type: 'ascii', x: 120, y: 200, text: 'AB' }]
+    const edges = []
+    const exported = serializeFlowchartToBase64(placedBlocks, edges)
+    const imported = parseFlowchartFromBase64(exported)
     expect(imported.placedBlocks).toEqual(placedBlocks)
     expect(imported.edges).toEqual(edges)
   })
@@ -73,5 +87,9 @@ describe('flowchart import/export', () => {
         }),
       ),
     ).toThrow('references missing blocks')
+
+    expect(() => parseFlowchartFromBase64('!not-base64!')).toThrow(
+      'Could not decode Base64 flowchart text.',
+    )
   })
 })
