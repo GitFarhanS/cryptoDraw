@@ -21,6 +21,8 @@ import { evaluateGraph } from './graph/evaluate-graph'
 import {
     parseFlowchartFromBase64,
     serializeFlowchartToBase64,
+    serializeFlowchart,
+    parseFlowchartFromText,
 } from './graph/flowchart-io'
 import {
     duplicatePlacedBlock,
@@ -37,6 +39,7 @@ const MIN_ZOOM = 0.25
 const MAX_ZOOM = 3
 const ZOOM_WHEEL_SENSITIVITY = 0.0018
 const THEME_STORAGE_KEY = 'cryptoDraw.theme'
+const CANVAS_STATE_STORAGE_KEY = 'cryptoDraw.canvasState'
 const MIN_MARQUEE_SIZE = 4
 type PasteAnchor = { x: number; y: number }
 const THEMES = [
@@ -47,6 +50,41 @@ const THEMES = [
     { value: 'solarized-dark', label: 'Solarized dark' },
     { value: 'high-contrast', label: 'High contrast' },
 ]
+
+function loadCanvasState() {
+    if (globalThis.window === undefined) {
+        return { placedBlocks: [], edges: [] }
+    }
+
+    try {
+        const stored = globalThis.window.localStorage.getItem(CANVAS_STATE_STORAGE_KEY)
+        if (!stored) {
+            return { placedBlocks: [], edges: [] }
+        }
+
+        const parsed = parseFlowchartFromText(stored)
+        return {
+            placedBlocks: parsed.placedBlocks,
+            edges: parsed.edges,
+        }
+    } catch (error) {
+        console.warn('Failed to load canvas state from localStorage:', error)
+        return { placedBlocks: [], edges: [] }
+    }
+}
+
+function saveCanvasState(placedBlocks: any[], edges: any[]) {
+    if (globalThis.window === undefined) {
+        return
+    }
+
+    try {
+        const serialized = serializeFlowchart(placedBlocks, edges)
+        globalThis.window.localStorage.setItem(CANVAS_STATE_STORAGE_KEY, serialized)
+    } catch (error) {
+        console.warn('Failed to save canvas state to localStorage:', error)
+    }
+}
 
 function readStoredTheme() {
     if (globalThis.window === undefined) {
@@ -91,8 +129,9 @@ function resolveColorScheme(theme: string) {
 }
 
 function App() {
-    const [placedBlocks, setPlacedBlocks] = useState<any[]>([])
-    const [edges, setEdges] = useState<any[]>([])
+    const initialCanvasState = loadCanvasState()
+    const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks)
+    const [edges, setEdges] = useState<any[]>(initialCanvasState.edges)
     const [sidePanelOpen, setSidePanelOpen] = useState(false)
     const [theme, setTheme] = useState<string>(readStoredTheme)
     const [zoom, setZoom] = useState<number>(1)
@@ -155,6 +194,14 @@ function App() {
     const zoomRef = useRef<number>(1)
     const didInitialScrollRef = useRef(false)
     const anchorsRef = useRef(new Map())
+    const pasteOffsetCounterRef = useRef(0)
+
+    // Disable browser's automatic scroll restoration to allow manual control
+    useEffect(() => {
+        if (globalThis.window) {
+            globalThis.window.history.scrollRestoration = 'manual'
+        }
+    }, [])
 
     useEffect(() => {
         const resolvedTheme = resolveTheme(theme)
@@ -205,6 +252,10 @@ function App() {
     useEffect(() => {
         zoomRef.current = zoom
     }, [zoom])
+
+    useEffect(() => {
+        saveCanvasState(placedBlocks, edges)
+    }, [placedBlocks, edges])
 
     const bumpLayout = useCallback(() => {
         setLayoutEpoch((n) => n + 1)
@@ -304,6 +355,7 @@ function App() {
     }, [])
 
     const closeContextMenus = useCallback(() => {
+        pasteOffsetCounterRef.current = 0
         setBlockContextMenu(null)
         setBoardContextMenu(null)
     }, [])
@@ -406,6 +458,30 @@ function App() {
         bumpLayout()
     }, [bumpLayout, closeContextMenus])
 
+    const scrollToBlocks = useCallback((blocks: any[]) => {
+        if (!blocks.length) return
+
+        const z = zoomRef.current
+        const minX = Math.min(...blocks.map((b) => b.x))
+        const maxX = Math.max(...blocks.map((b) => b.x))
+        const minY = Math.min(...blocks.map((b) => b.y))
+        const maxY = Math.max(...blocks.map((b) => b.y))
+
+        // Center the view on the bounding box of the blocks
+        const centerX = (minX + maxX) / 2
+        const centerY = (minY + maxY) / 2
+        const targetScrollX = centerX * z - window.innerWidth / 2
+        const targetScrollY = centerY * z - window.innerHeight / 2
+
+        const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
+        const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
+
+        window.scrollTo({
+            left: Math.min(Math.max(0, targetScrollX), maxScrollLeft),
+            top: Math.min(Math.max(0, targetScrollY), maxScrollTop),
+        })
+    }, [])
+
     const copySelectedBlocks = useCallback(async (menuBlockId?: string) => {
         const selected = selectedBlockIdsRef.current
         const idsToCopy = menuBlockId
@@ -445,6 +521,9 @@ function App() {
 
             const idMap = new Map<string, string>()
             const duplicated = parsed.placedBlocks.map((block: any, index: number) => {
+                // Increment paste counter and calculate offset
+                const pasteOffset = 24 * (++pasteOffsetCounterRef.current)
+
                 const newId = crypto.randomUUID()
                 idMap.set(block.id, newId)
 
@@ -819,19 +898,34 @@ function App() {
             return
         }
         didInitialScrollRef.current = true
-        const z = zoomRef.current
-        const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
-        const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
-        const left = Math.min(
-            Math.max(0, (CANVAS_SIZE * z - window.innerWidth) / 2),
-            maxScrollLeft,
-        )
-        const top = Math.min(
-            Math.max(0, (CANVAS_SIZE * z - window.innerHeight) / 2),
-            maxScrollTop,
-        )
-        window.scrollTo({ left, top })
-    }, [])
+
+        // Reset scroll position to override browser's auto-restore
+        window.scrollTo(0, 0)
+
+        // If there are placed blocks (loaded from state), scroll to them
+        if (placedBlocks.length > 0) {
+            requestAnimationFrame(() => {
+                scrollToBlocks(placedBlocks)
+            })
+            return
+        }
+
+        // Otherwise, center the canvas
+        requestAnimationFrame(() => {
+            const z = zoomRef.current
+            const maxScrollLeft = Math.max(0, CANVAS_SIZE * z - window.innerWidth)
+            const maxScrollTop = Math.max(0, CANVAS_SIZE * z - window.innerHeight)
+            const left = Math.min(
+                Math.max(0, (CANVAS_SIZE * z - window.innerWidth) / 2),
+                maxScrollLeft,
+            )
+            const top = Math.min(
+                Math.max(0, (CANVAS_SIZE * z - window.innerHeight) / 2),
+                maxScrollTop,
+            )
+            window.scrollTo({ left, top })
+        })
+    }, [placedBlocks, scrollToBlocks])
 
     useEffect(() => {
         const onWheel = (event: WheelEvent) => {
@@ -1106,7 +1200,8 @@ function App() {
         setPlacedBlocks(parsed.placedBlocks)
         setEdges(parsed.edges)
         bumpLayout()
-    }, [bumpLayout])
+        scrollToBlocks(parsed.placedBlocks)
+    }, [bumpLayout, scrollToBlocks])
 
     return (
         <>
@@ -1252,6 +1347,7 @@ function App() {
                 canvasSize={CANVAS_SIZE}
                 minimapSize={MINIMAP_SIZE}
                 viewport={viewport}
+                placedBlocks={placedBlocks}
                 onNavigate={navigateFromMinimap}
             />
             <SidePanel open={sidePanelOpen} onOpenChange={setSidePanelOpen}>

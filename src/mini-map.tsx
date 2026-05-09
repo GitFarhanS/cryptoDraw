@@ -4,10 +4,11 @@ interface Props {
     canvasSize: number
     minimapSize: number
     viewport: { left: number; top: number; width: number; height: number }
+    placedBlocks?: Array<{ id: string; x: number; y: number }>
     onNavigate: (left: number, top: number) => void
 }
 
-function MiniMap({ canvasSize, minimapSize, viewport, onNavigate }: Readonly<Props>) {
+function MiniMap({ canvasSize, minimapSize, viewport, placedBlocks = [], onNavigate }: Readonly<Props>) {
     const [isPanning, setIsPanning] = useState(false)
     const mapRef = useRef<HTMLDivElement | null>(null)
     const activePointerIdRef = useRef<number | null>(null)
@@ -24,6 +25,10 @@ function MiniMap({ canvasSize, minimapSize, viewport, onNavigate }: Readonly<Pro
         width: `${mapWidth}px`,
         height: `${mapHeight}px`,
     }
+
+    // Calculate miniature block dimensions (approximate 288px block width in canvas to minimap)
+    const blockWidth = 288 * scale
+    const blockHeight = 60 * scale // approximate height
 
     const navigateToPointer = (event: any) => {
         const bounds = mapRef.current?.getBoundingClientRect()
@@ -81,6 +86,18 @@ function MiniMap({ canvasSize, minimapSize, viewport, onNavigate }: Readonly<Pro
             onPointerCancel={endPan}
         >
             <div className="minimap-grid" />
+            {placedBlocks.map((block) => (
+                <div
+                    key={block.id}
+                    className="minimap-block"
+                    style={{
+                        left: `${block.x * scale}px`,
+                        top: `${block.y * scale}px`,
+                        width: `${blockWidth}px`,
+                        height: `${blockHeight}px`,
+                    }}
+                />
+            ))}
             <div className="minimap-viewport" style={viewportStyle} />
         </div>
     )
