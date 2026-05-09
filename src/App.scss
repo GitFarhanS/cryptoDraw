@@ -258,7 +258,7 @@ body[data-theme='solarized-dark'] {
 }
 
 .canvas-scroll-extent {
-    overflow: auto;
+    overflow: visible;
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
@@ -451,6 +451,28 @@ body[data-theme='solarized-dark'] {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--chip-border) 72%, transparent) transparent;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--chip-border) 72%, transparent);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--chip-border) 92%, transparent);
+        background-clip: content-box;
+    }
 }
 
 .side-panel.is-open .side-panel-toggle {
@@ -666,6 +688,28 @@ body[data-theme='solarized-dark'] {
     min-height: 0;
     overflow: auto;
     padding: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--chip-border) 72%, transparent) transparent;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--chip-border) 72%, transparent);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--chip-border) 92%, transparent);
+        background-clip: content-box;
+    }
 }
 
 .sp-panel-expanded-placeholder {
@@ -764,8 +808,21 @@ body[data-theme='solarized-dark'] .theme-select {
 
 .flowchart-io-card-title {
     margin: 0;
+    padding-top: 4px;
     font-size: 13px;
     font-weight: 700;
+}
+
+.flowchart-io-custom-functions-title {
+    margin: 0;
+    padding: 0;
+    padding-bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.flowchart-io-custom-function-row {
+    padding-bottom: 10px;
 }
 
 .flowchart-io-toggle {
@@ -828,16 +885,21 @@ body[data-theme='solarized-dark'] .theme-select {
     display: none;
 }
 
-.flowchart-io-status {
+.flowchart-io-toast {
     margin: 0;
     font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--chip-border);
+    background: color-mix(in srgb, var(--panel-surface-strong) 82%, transparent);
+    box-shadow: var(--shadow-soft);
 }
 
-.flowchart-io-status--success {
+.flowchart-io-toast--success {
     color: #0b5c2f;
 }
 
-.flowchart-io-status--error {
+.flowchart-io-toast--error {
     color: #8c1f1f;
 }
 
@@ -855,11 +917,11 @@ body[data-theme='solarized-dark'] .theme-select {
     background: color-mix(in srgb, var(--panel-surface-strong) 88%, transparent);
 }
 
-.sp-panel-expanded[data-tone='4'] .flowchart-io-status--success {
+.sp-panel-expanded[data-tone='4'] .flowchart-io-toast--success {
     color: #d8f4de;
 }
 
-.sp-panel-expanded[data-tone='4'] .flowchart-io-status--error {
+.sp-panel-expanded[data-tone='4'] .flowchart-io-toast--error {
     color: #ffd8d8;
 }
 
@@ -924,6 +986,43 @@ body[data-theme='solarized-dark'] .theme-select {
 
 .flowchart-io-dialog .flowchart-io-button:hover {
     background: #e4e9f2;
+}
+
+.app-toast {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(420px, calc(100vw - 28px));
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--chip-border);
+    background: var(--panel-surface-strong);
+    box-shadow: var(--shadow-soft);
+    color: var(--chip-fg);
+    font-size: 13px;
+}
+
+.app-toast--success {
+    border-color: #2f8f58;
+}
+
+.app-toast--error {
+    border-color: #b84a4a;
+}
+
+.app-toast__dismiss {
+    border: 1px solid var(--chip-border);
+    background: transparent;
+    color: inherit;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .cookie-modal-overlay {

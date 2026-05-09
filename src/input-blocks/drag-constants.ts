@@ -1,4 +1,5 @@
 export const INPUT_BLOCK_DRAG_MIME = 'application/x-crypto-drawer-block-type';
+export const CUSTOM_FUNCTION_DRAG_MIME = 'application/x-crypto-drawer-custom-function';
 
 export const INPUT_BLOCK_TYPES = ['binary', 'hex', 'decimal', 'ascii'] as const;
 
