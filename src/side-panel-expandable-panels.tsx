@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 import ConverterBlocks from './converter-block/converter-blocks';
-import FlowchartIoPanel from './flowchart-io-panel';
+import FlowchartIoPanel from './flowchart-settings-panel';
 import InputBlocks from './input-blocks/input-blocks';
 import OperationsBlocks from './operations-block/operations-blocks';
 import OutputBlock from './output-block/output-block';

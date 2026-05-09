@@ -182,10 +182,10 @@ body[data-theme='sepia'] {
     --tone-4-bg: #7d5834;
     --tone-4-hover: #6f4c2b;
     --tone-4-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    --tone-strong-fg: #fff8ef;
-    --tone-strong-chevron: rgba(255, 248, 239, 0.72);
-    --tone-strong-border: rgba(255, 248, 239, 0.3);
-    --tone-strong-placeholder: rgba(255, 248, 239, 0.84);
+    --tone-strong-fg: #f7e9d5;
+    --tone-strong-chevron: rgba(247, 233, 213, 0.8);
+    --tone-strong-border: rgba(247, 233, 213, 0.34);
+    --tone-strong-placeholder: rgba(247, 233, 213, 0.9);
 }
 
 body[data-theme='solarized-dark'] {
@@ -391,7 +391,7 @@ body[data-theme='solarized-dark'] {
     pointer-events: none;
 }
 
-.side-panel > * {
+.side-panel>* {
     pointer-events: auto;
 }
 
@@ -796,10 +796,10 @@ body[data-theme='solarized-dark'] .theme-select {
 .flowchart-io-button {
     width: 100%;
     padding: 8px 10px;
-    border: 1px solid #7a7d86;
+    border: 1px solid var(--chip-border);
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.35);
-    color: inherit;
+    background: var(--panel-surface-strong);
+    color: var(--chip-fg);
     font: inherit;
     font-size: 13px;
     cursor: pointer;
@@ -816,7 +816,7 @@ body[data-theme='solarized-dark'] .theme-select {
 }
 
 .flowchart-io-button:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--panel-hover);
 }
 
 .flowchart-io-button:focus-visible {
@@ -843,6 +843,16 @@ body[data-theme='solarized-dark'] .theme-select {
 
 .sp-panel-expanded[data-tone='4'] .flowchart-io {
     color: var(--tone-strong-fg);
+}
+
+.sp-panel-expanded[data-tone='4'] .flowchart-io-card,
+.sp-panel-expanded[data-tone='4'] .flowchart-io-button,
+.sp-panel-expanded[data-tone='4'] .flowchart-io-toggle {
+    color: var(--app-fg);
+}
+
+.sp-panel-expanded[data-tone='4'] .flowchart-io-card {
+    background: color-mix(in srgb, var(--panel-surface-strong) 88%, transparent);
 }
 
 .sp-panel-expanded[data-tone='4'] .flowchart-io-status--success {
@@ -1123,7 +1133,7 @@ body[data-theme='solarized-dark'] .theme-select {
     margin-bottom: 8px;
 }
 
-.converter-block-row > div {
+.converter-block-row>div {
     flex: 1;
     min-width: 0;
 }

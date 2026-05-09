@@ -155,7 +155,12 @@ function snapValue(value: number) {
 
 function App() {
     const initialCanvasState = loadCanvasState();
-    const [showConsent, setShowConsent] = useState(false);
+    const [showConsent, setShowConsent] = useState(() => {
+        const localConsent = globalThis.localStorage.getItem(CONSENT_KEY);
+        const sessionConsent = globalThis.sessionStorage.getItem(CONSENT_KEY);
+
+        return localConsent !== 'accepted' && sessionConsent !== 'accepted';
+    });
 
     const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks);
     const [edges, setEdges] = useState<any[]>(initialCanvasState.edges);
@@ -230,13 +235,6 @@ function App() {
     useEffect(() => {
         if (globalThis.window) {
             globalThis.window.history.scrollRestoration = 'manual';
-        }
-
-        const localConsent = globalThis.localStorage.getItem(CONSENT_KEY);
-        const sessionConsent = globalThis.sessionStorage.getItem(CONSENT_KEY);
-
-        if (localConsent !== 'accepted' && sessionConsent !== 'accepted') {
-            setShowConsent(true);
         }
     }, []);
 
@@ -382,10 +380,10 @@ function App() {
                     return prev.map((block) =>
                         block.id === blockId
                             ? {
-                                  ...block,
-                                  x: targetX,
-                                  y: targetY,
-                              }
+                                ...block,
+                                x: targetX,
+                                y: targetY,
+                            }
                             : block
                     );
                 }
@@ -396,10 +394,10 @@ function App() {
                 return prev.map((block) =>
                     selectedSet.has(block.id)
                         ? {
-                              ...block,
-                              x: block.x + dx,
-                              y: block.y + dy,
-                          }
+                            ...block,
+                            x: block.x + dx,
+                            y: block.y + dy,
+                        }
                         : block
                 );
             });
@@ -623,13 +621,13 @@ function App() {
                 let anchor: PasteAnchor = target
                     ? { x: target.x, y: target.y }
                     : phase === 'center'
-                      ? {
+                        ? {
                             x: (window.scrollX + window.innerWidth / 2) / z,
                             y: (window.scrollY + window.innerHeight / 2) / z,
                         }
-                      : phase === 'top-left'
-                        ? { x: viewport.left, y: viewport.top }
-                        : { x: viewport.left, y: viewport.top + viewport.height / 2 };
+                        : phase === 'top-left'
+                            ? { x: viewport.left, y: viewport.top }
+                            : { x: viewport.left, y: viewport.top + viewport.height / 2 };
 
                 // Compute grid position
                 let n = pasteOffsetCounterRef.current;
