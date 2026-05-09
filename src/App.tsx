@@ -35,7 +35,7 @@ const MAX_ZOOM = 3
 const ZOOM_WHEEL_SENSITIVITY = 0.0018
 const THEME_STORAGE_KEY = 'cryptoDraw.theme'
 const MIN_MARQUEE_SIZE = 4
-type PasteAnchor = { x: number, y: number }
+type PasteAnchor = { x: number; y: number }
 const THEMES = [
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Light' },
