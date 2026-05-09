@@ -1,76 +1,83 @@
-import { useLayoutEffect, useState } from 'react'
-import { bezierPathD } from './graph/bezier-path'
-import { portRegistryKey } from './graph/edge-types'
-import type { WireDragState } from './graph/canvas-graph-context'
-import type { GraphEdge } from './graph/edge-types'
+import { useLayoutEffect, useState } from 'react';
+import { bezierPathD } from './graph/bezier-path';
+import { portRegistryKey } from './graph/edge-types';
+import type { WireDragState } from './graph/canvas-graph-context';
+import type { GraphEdge } from './graph/edge-types';
 
 interface Props {
-    edges: GraphEdge[]
-    anchorsRef: React.RefObject<Map<string, HTMLElement>>
-    canvasRef: React.RefObject<HTMLElement | null>
-    rubberBand: Pick<WireDragState, 'fromBlockId' | 'fromPortKey' | 'clientX' | 'clientY'> | null
-    layoutEpoch: number
-    zoom: number
+    edges: GraphEdge[];
+    anchorsRef: React.RefObject<Map<string, HTMLElement>>;
+    canvasRef: React.RefObject<HTMLElement | null>;
+    rubberBand: Pick<WireDragState, 'fromBlockId' | 'fromPortKey' | 'clientX' | 'clientY'> | null;
+    layoutEpoch: number;
+    zoom: number;
 }
 
-function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom }: Readonly<Props>) {
+function CanvasWires({
+    edges,
+    anchorsRef,
+    canvasRef,
+    rubberBand,
+    layoutEpoch,
+    zoom,
+}: Readonly<Props>) {
     const [geometry, setGeometry] = useState<{
-        paths: { edge: GraphEdge; d: string }[]
-        rubberPath: string | null
+        paths: { edge: GraphEdge; d: string }[];
+        rubberPath: string | null;
     }>({
         paths: [],
         rubberPath: null,
-    })
+    });
 
     useLayoutEffect(() => {
-        const canvasEl = canvasRef.current
+        const canvasEl = canvasRef.current;
         if (!canvasEl) {
-            setGeometry({ paths: [], rubberPath: null })
-            return
+            setGeometry({ paths: [], rubberPath: null });
+            return;
         }
 
-        const canvasRect = canvasEl.getBoundingClientRect()
-        const z = zoom || 1
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const z = zoom || 1;
 
         function anchorPoint(registryKey: string) {
-            const el = anchorsRef.current?.get(registryKey)
+            const el = anchorsRef.current?.get(registryKey);
             if (!el) {
-                return null
+                return null;
             }
-            const r = el.getBoundingClientRect()
+            const r = el.getBoundingClientRect();
             return {
                 x: (r.left + r.width / 2 - canvasRect.left) / z,
                 y: (r.top + r.height / 2 - canvasRect.top) / z,
-            }
+            };
         }
 
-        const paths: { edge: GraphEdge; d: string }[] = []
+        const paths: { edge: GraphEdge; d: string }[] = [];
         for (const edge of edges) {
-            const fromKey = portRegistryKey(edge.from.blockId, edge.from.portKey)
-            const toKey = portRegistryKey(edge.to.blockId, edge.to.portKey)
-            const p1 = anchorPoint(fromKey)
-            const p2 = anchorPoint(toKey)
+            const fromKey = portRegistryKey(edge.from.blockId, edge.from.portKey);
+            const toKey = portRegistryKey(edge.to.blockId, edge.to.portKey);
+            const p1 = anchorPoint(fromKey);
+            const p2 = anchorPoint(toKey);
             if (!p1 || !p2) {
-                continue
+                continue;
             }
-            paths.push({ edge, d: bezierPathD(p1, p2) })
+            paths.push({ edge, d: bezierPathD(p1, p2) });
         }
 
-        let rubberPath: string | null = null
+        let rubberPath: string | null = null;
         if (rubberBand) {
-            const fromKey = portRegistryKey(rubberBand.fromBlockId, rubberBand.fromPortKey)
-            const p1 = anchorPoint(fromKey)
+            const fromKey = portRegistryKey(rubberBand.fromBlockId, rubberBand.fromPortKey);
+            const p1 = anchorPoint(fromKey);
             if (p1) {
                 const p2 = {
                     x: (rubberBand.clientX - canvasRect.left) / z,
                     y: (rubberBand.clientY - canvasRect.top) / z,
-                }
-                rubberPath = bezierPathD(p1, p2)
+                };
+                rubberPath = bezierPathD(p1, p2);
             }
         }
 
-        setGeometry({ paths, rubberPath })
-    }, [edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom])
+        setGeometry({ paths, rubberPath });
+    }, [edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zoom]);
 
     return (
         <svg className="canvas-wires" aria-hidden>
@@ -87,7 +94,7 @@ function CanvasWires({ edges, anchorsRef, canvasRef, rubberBand, layoutEpoch, zo
                 <path className="canvas-wires__rubber" d={geometry.rubberPath} fill="none" />
             ) : null}
         </svg>
-    )
+    );
 }
 
-export default CanvasWires
+export default CanvasWires;

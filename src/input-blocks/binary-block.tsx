@@ -1,27 +1,27 @@
-import { useId, useState } from 'react'
-import PortHandle from '../port-handle'
-import { attachPaletteDragData } from './palette-drag'
+import { useId, useState } from 'react';
+import PortHandle from '../port-handle';
+import { attachPaletteDragData } from './palette-drag';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
 }
 
 function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-binary-title`
-    const isCanvas = Boolean(block)
-    const [paletteValue, setPaletteValue] = useState('')
-    const value = isCanvas ? (block.text ?? '') : paletteValue
+    const id = useId();
+    const titleId = `${id}-binary-title`;
+    const isCanvas = Boolean(block);
+    const [paletteValue, setPaletteValue] = useState('');
+    const value = isCanvas ? (block.text ?? '') : paletteValue;
 
     const setValue = (next: string) => {
         if (isCanvas) {
-            onBlockPatch?.({ text: next })
+            onBlockPatch?.({ text: next });
         } else {
-            setPaletteValue(next)
+            setPaletteValue(next);
         }
-    }
+    };
 
     const sectionClass = [
         'input-block',
@@ -29,7 +29,7 @@ function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonl
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
@@ -49,7 +49,7 @@ function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonl
                 className="input-block-field input-block-field--mono"
                 value={value}
                 onChange={(e) => {
-                    const filtered = e.target.value.replaceAll(/[^01]/g, "");
+                    const filtered = e.target.value.replaceAll(/[^01]/g, '');
                     setValue(filtered);
                 }}
                 placeholder="e.g. 010101"
@@ -62,7 +62,7 @@ function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonl
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default BinaryBlock
+export default BinaryBlock;

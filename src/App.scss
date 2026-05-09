@@ -391,7 +391,7 @@ body[data-theme='solarized-dark'] {
     pointer-events: none;
 }
 
-.side-panel>* {
+.side-panel > * {
     pointer-events: auto;
 }
 
@@ -452,8 +452,6 @@ body[data-theme='solarized-dark'] {
     display: flex;
     flex-direction: column;
 }
-
-
 
 .side-panel.is-open .side-panel-toggle {
     border-left: none;
@@ -653,7 +651,6 @@ body[data-theme='solarized-dark'] {
     outline-offset: 2px;
 }
 
-
 .sp-panel-expanded-title {
     margin: 0;
     font-size: 15px;
@@ -755,6 +752,35 @@ body[data-theme='solarized-dark'] .theme-select {
     gap: 10px;
 }
 
+.flowchart-io-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--chip-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-surface-strong) 70%, transparent);
+}
+
+.flowchart-io-card-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.flowchart-io-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    user-select: none;
+}
+
+.flowchart-io-toggle input {
+    width: 16px;
+    height: 16px;
+}
+
 .flowchart-io-text {
     margin: 0;
     font-size: 13px;
@@ -778,6 +804,15 @@ body[data-theme='solarized-dark'] .theme-select {
     font-size: 13px;
     cursor: pointer;
     text-align: left;
+}
+
+.flowchart-io-button--danger {
+    border-color: #b84a4a;
+    background: rgba(184, 74, 74, 0.12);
+}
+
+.flowchart-io-button--danger:hover {
+    background: rgba(184, 74, 74, 0.2);
 }
 
 .flowchart-io-button:hover {
@@ -1088,7 +1123,7 @@ body[data-theme='solarized-dark'] .theme-select {
     margin-bottom: 8px;
 }
 
-.converter-block-row>div {
+.converter-block-row > div {
     flex: 1;
     min-width: 0;
 }

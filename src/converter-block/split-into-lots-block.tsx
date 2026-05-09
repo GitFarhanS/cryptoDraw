@@ -1,28 +1,28 @@
-import { useId, useState } from 'react'
-import PortHandle from '../port-handle'
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
+import { useId, useState } from 'react';
+import PortHandle from '../port-handle';
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
 }
 
 function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-split-title`
-    const isCanvas = Boolean(block)
-    const [paletteState, setPaletteState] = useState({ blockCount: 2 })
+    const id = useId();
+    const titleId = `${id}-split-title`;
+    const isCanvas = Boolean(block);
+    const [paletteState, setPaletteState] = useState({ blockCount: 2 });
 
-    const blockCount = isCanvas ? (block.blockCount ?? 2) : paletteState.blockCount
+    const blockCount = isCanvas ? (block.blockCount ?? 2) : paletteState.blockCount;
 
     const setBlockCount = (next: number) => {
         if (isCanvas) {
-            onBlockPatch?.({ blockCount: next })
+            onBlockPatch?.({ blockCount: next });
         } else {
-            setPaletteState((s) => ({ ...s, blockCount: next }))
+            setPaletteState((s) => ({ ...s, blockCount: next }));
         }
-    }
+    };
 
     const sectionClass = [
         'input-block',
@@ -30,18 +30,22 @@ function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: 
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
             className={sectionClass}
             aria-labelledby={titleId}
             draggable={draggableToCanvas}
-            onDragStart={draggableToCanvas ? (e) => attachPaletteDragData(e, 'splitIntoLots') : undefined}
+            onDragStart={
+                draggableToCanvas ? (e) => attachPaletteDragData(e, 'splitIntoLots') : undefined
+            }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {(isCanvas || draggableToCanvas) ? (
-                <div className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive`}>
+            {isCanvas || draggableToCanvas ? (
+                <div
+                    className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive`}
+                >
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
                         portKey="in"
@@ -66,10 +70,11 @@ function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: 
                 value={blockCount}
                 onChange={(e) => setBlockCount(Number(e.target.value))}
             />
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div
-                    className={`notch-ports-row notch-ports-row--bottom notch-ports-row--interactive ${blockCount > 1 ? 'notch-ports-row--spread' : ''
-                        }`.trim()}
+                    className={`notch-ports-row notch-ports-row--bottom notch-ports-row--interactive ${
+                        blockCount > 1 ? 'notch-ports-row--spread' : ''
+                    }`.trim()}
                 >
                     {Array.from({ length: blockCount }).map((_, i) => (
                         <PortHandle
@@ -83,7 +88,7 @@ function SplitIntoLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: 
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default SplitIntoLotsBlock
+export default SplitIntoLotsBlock;

@@ -1,48 +1,61 @@
-import React, { useId, useState } from 'react'
-import ConverterBlocks from './converter-block/converter-blocks'
-import FlowchartIoPanel from './flowchart-io-panel'
-import InputBlocks from './input-blocks/input-blocks'
-import OperationsBlocks from './operations-block/operations-blocks'
-import OutputBlock from './output-block/output-block'
+import React, { useId, useState } from 'react';
+import ConverterBlocks from './converter-block/converter-blocks';
+import FlowchartIoPanel from './flowchart-io-panel';
+import InputBlocks from './input-blocks/input-blocks';
+import OperationsBlocks from './operations-block/operations-blocks';
+import OutputBlock from './output-block/output-block';
 
-const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Flowchart']
+const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Settings'];
 
 interface Props {
-    onExportFlowchart: () => string
-    onImportFlowchart: (base64: string) => void
-    onClearFlowchart: () => void
+    onExportFlowchart: () => string;
+    onImportFlowchart: (base64: string) => void;
+    onClearFlowchart: () => void;
+    snapToGrid: boolean;
+    onSnapToGridChange: (value: boolean) => void;
+    onResetLocalStorage: () => void;
 }
 
-function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart, onClearFlowchart }: Readonly<Props>) {
-    const baseId = useId()
-    const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
+function SidePanelExpandablePanels({
+    onExportFlowchart,
+    onImportFlowchart,
+    onClearFlowchart,
+    snapToGrid,
+    onSnapToGridChange,
+    onResetLocalStorage,
+}: Readonly<Props>) {
+    const baseId = useId();
+    const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
     const renderPanelContent = (title: string) => {
         switch (title) {
             case 'Input':
-                return <InputBlocks />
+                return <InputBlocks />;
             case 'Converter':
-                return <ConverterBlocks />
+                return <ConverterBlocks />;
             case 'Operations':
-                return <OperationsBlocks />
-            case 'Flowchart':
+                return <OperationsBlocks />;
+            case 'Settings':
                 return (
                     <FlowchartIoPanel
                         onExportFlowchart={onExportFlowchart}
                         onImportFlowchart={onImportFlowchart}
                         onClearFlowchart={onClearFlowchart}
+                        snapToGrid={snapToGrid}
+                        onSnapToGridChange={onSnapToGridChange}
+                        onResetLocalStorage={onResetLocalStorage}
                     />
-                )
+                );
             case 'Output':
-                return <OutputBlock draggableToCanvas />
+                return <OutputBlock draggableToCanvas />;
             default:
-                return <p className="sp-panel-expanded-placeholder">Content for {title}.</p>
+                return <p className="sp-panel-expanded-placeholder">Content for {title}.</p>;
         }
-    }
+    };
 
     if (expandedIndex !== null) {
-        const title = PANELS[expandedIndex]
-        const titleId = `${baseId}-title-${expandedIndex}`
+        const title = PANELS[expandedIndex];
+        const titleId = `${baseId}-title-${expandedIndex}`;
 
         return (
             <div className="sp-panels sp-panels--expanded">
@@ -65,12 +78,10 @@ function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart, onCle
                             {title}
                         </h2>
                     </div>
-                    <div className="sp-panel-expanded-body">
-                        {renderPanelContent(title)}
-                    </div>
+                    <div className="sp-panel-expanded-body">{renderPanelContent(title)}</div>
                 </section>
             </div>
-        )
+        );
     }
 
     return (
@@ -91,7 +102,7 @@ function SidePanelExpandablePanels({ onExportFlowchart, onImportFlowchart, onCle
                 </button>
             ))}
         </div>
-    )
+    );
 }
 
-export default SidePanelExpandablePanels
+export default SidePanelExpandablePanels;
