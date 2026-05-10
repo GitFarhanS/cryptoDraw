@@ -464,10 +464,10 @@ function App() {
                     return prev.map((block) =>
                         block.id === blockId
                             ? {
-                                  ...block,
-                                  x: targetX,
-                                  y: targetY,
-                              }
+                                ...block,
+                                x: targetX,
+                                y: targetY,
+                            }
                             : block
                     );
                 }
@@ -478,10 +478,10 @@ function App() {
                 return prev.map((block) =>
                     selectedSet.has(block.id)
                         ? {
-                              ...block,
-                              x: block.x + dx,
-                              y: block.y + dy,
-                          }
+                            ...block,
+                            x: block.x + dx,
+                            y: block.y + dy,
+                        }
                         : block
                 );
             });
@@ -804,13 +804,13 @@ function App() {
                 let anchor: PasteAnchor = target
                     ? { x: target.x, y: target.y }
                     : phase === 'center'
-                      ? {
+                        ? {
                             x: (window.scrollX + window.innerWidth / 2) / z,
                             y: (window.scrollY + window.innerHeight / 2) / z,
                         }
-                      : phase === 'top-left'
-                        ? { x: viewport.left, y: viewport.top }
-                        : { x: viewport.left, y: viewport.top + viewport.height / 2 };
+                        : phase === 'top-left'
+                            ? { x: viewport.left, y: viewport.top }
+                            : { x: viewport.left, y: viewport.top + viewport.height / 2 };
 
                 // Compute grid position
                 let n = pasteOffsetCounterRef.current;
@@ -1958,13 +1958,7 @@ function App() {
                 <section className="theme-panel" aria-label="Theme selector">
                     <div className="theme-panel__header">
                         <h2 className="theme-panel__title">Theme</h2>
-                        <p className="theme-panel__hint">
-                            Pick a preset for the board, panels, and wiring.
-                        </p>
                     </div>
-                    <label className="theme-select-label" htmlFor="theme-select">
-                        Active theme
-                    </label>
                     <select
                         id="theme-select"
                         className="theme-select"
