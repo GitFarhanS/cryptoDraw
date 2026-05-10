@@ -237,9 +237,8 @@ function App() {
         canvasY: number;
     }>(null);
     const [wireDrag, setWireDrag] = useState<any>(null);
-    const [customFunctions, setCustomFunctions] = useState<
-        Array<{ id: string; name: string; payload: string }>
-    >(readStoredCustomFunctions);
+    const [customFunctions, setCustomFunctions] =
+        useState<Array<{ id: string; name: string; payload: string }>>(readStoredCustomFunctions);
     const [toast, setToast] = useState<null | { message: string; kind: 'success' | 'error' }>(null);
 
     const dragStateRef = useRef<any>({
@@ -458,10 +457,10 @@ function App() {
                     return prev.map((block) =>
                         block.id === blockId
                             ? {
-                                ...block,
-                                x: targetX,
-                                y: targetY,
-                            }
+                                  ...block,
+                                  x: targetX,
+                                  y: targetY,
+                              }
                             : block
                     );
                 }
@@ -472,10 +471,10 @@ function App() {
                 return prev.map((block) =>
                     selectedSet.has(block.id)
                         ? {
-                            ...block,
-                            x: block.x + dx,
-                            y: block.y + dy,
-                        }
+                              ...block,
+                              x: block.x + dx,
+                              y: block.y + dy,
+                          }
                         : block
                 );
             });
@@ -717,13 +716,13 @@ function App() {
                 let anchor: PasteAnchor = target
                     ? { x: target.x, y: target.y }
                     : phase === 'center'
-                        ? {
+                      ? {
                             x: (window.scrollX + window.innerWidth / 2) / z,
                             y: (window.scrollY + window.innerHeight / 2) / z,
                         }
-                        : phase === 'top-left'
-                            ? { x: viewport.left, y: viewport.top }
-                            : { x: viewport.left, y: viewport.top + viewport.height / 2 };
+                      : phase === 'top-left'
+                        ? { x: viewport.left, y: viewport.top }
+                        : { x: viewport.left, y: viewport.top + viewport.height / 2 };
 
                 // Compute grid position
                 let n = pasteOffsetCounterRef.current;
@@ -837,7 +836,12 @@ function App() {
             if (!fn) {
                 return false;
             }
-            const share = JSON.stringify({ version: 1, type: 'custom-function', name: fn.name, payload: fn.payload });
+            const share = JSON.stringify({
+                version: 1,
+                type: 'custom-function',
+                name: fn.name,
+                payload: fn.payload,
+            });
             try {
                 await navigator.clipboard.writeText(share);
                 return true;
@@ -848,33 +852,36 @@ function App() {
         [customFunctions]
     );
 
-    const importCustomFunctionShare = useCallback((text: string) => {
-        let parsed: any;
-        try {
-            parsed = JSON.parse(text);
-        } catch {
-            throw new Error('Invalid custom function share text.');
-        }
-        if (
-            parsed?.type !== 'custom-function' ||
-            typeof parsed.name !== 'string' ||
-            typeof parsed.payload !== 'string'
-        ) {
-            throw new Error('Invalid custom function share format.');
-        }
-        if (customFunctions.some((item) => item.payload === parsed.payload)) {
-            throw new Error('This custom function is already imported.');
-        }
-        // Validate payload
-        parseFlowchartFromBase64(parsed.payload);
-        const id = crypto.randomUUID();
-        let finalName = parsed.name as string;
-        setCustomFunctions((prev) => {
-            finalName = resolveCustomFunctionName(parsed.name, prev);
-            return [...prev, { id, name: finalName, payload: parsed.payload }];
-        });
-        return finalName;
-    }, [customFunctions]);
+    const importCustomFunctionShare = useCallback(
+        (text: string) => {
+            let parsed: any;
+            try {
+                parsed = JSON.parse(text);
+            } catch {
+                throw new Error('Invalid custom function share text.');
+            }
+            if (
+                parsed?.type !== 'custom-function' ||
+                typeof parsed.name !== 'string' ||
+                typeof parsed.payload !== 'string'
+            ) {
+                throw new Error('Invalid custom function share format.');
+            }
+            if (customFunctions.some((item) => item.payload === parsed.payload)) {
+                throw new Error('This custom function is already imported.');
+            }
+            // Validate payload
+            parseFlowchartFromBase64(parsed.payload);
+            const id = crypto.randomUUID();
+            let finalName = parsed.name as string;
+            setCustomFunctions((prev) => {
+                finalName = resolveCustomFunctionName(parsed.name, prev);
+                return [...prev, { id, name: finalName, payload: parsed.payload }];
+            });
+            return finalName;
+        },
+        [customFunctions]
+    );
 
     const placeCustomFunctionAt = useCallback(
         (customFunctionId: string, x: number, y: number) => {
@@ -898,8 +905,12 @@ function App() {
                 return {
                     ...block,
                     id: newId,
-                    x: snapToGrid ? snapValue(x + (block.x - sourceLeft)) : x + (block.x - sourceLeft),
-                    y: snapToGrid ? snapValue(y + (block.y - sourceTop)) : y + (block.y - sourceTop),
+                    x: snapToGrid
+                        ? snapValue(x + (block.x - sourceLeft))
+                        : x + (block.x - sourceLeft),
+                    y: snapToGrid
+                        ? snapValue(y + (block.y - sourceTop))
+                        : y + (block.y - sourceTop),
                 };
             });
 
@@ -1820,7 +1831,11 @@ function App() {
                 />
             </SidePanel>
             {toast ? (
-                <div className={`app-toast app-toast--${toast.kind}`} role="status" aria-live="polite">
+                <div
+                    className={`app-toast app-toast--${toast.kind}`}
+                    role="status"
+                    aria-live="polite"
+                >
                     <span>{toast.message}</span>
                     <button
                         type="button"

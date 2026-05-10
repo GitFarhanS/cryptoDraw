@@ -391,7 +391,7 @@ body[data-theme='solarized-dark'] {
     pointer-events: none;
 }
 
-.side-panel>* {
+.side-panel > * {
     pointer-events: auto;
 }
 
@@ -1232,7 +1232,7 @@ body[data-theme='solarized-dark'] .theme-select {
     margin-bottom: 8px;
 }
 
-.converter-block-row>div {
+.converter-block-row > div {
     flex: 1;
     min-width: 0;
 }

@@ -84,7 +84,10 @@ function FlowchartIoPanel({
             onToast('Flowchart imported from Base64 text.', 'success');
             setDialog(null);
         } catch (error) {
-            onToast(error instanceof Error ? error.message : 'Could not import flowchart.', 'error');
+            onToast(
+                error instanceof Error ? error.message : 'Could not import flowchart.',
+                'error'
+            );
         }
     };
 
@@ -148,8 +151,8 @@ function FlowchartIoPanel({
             <section className="flowchart-io-card" aria-label="Custom function blocks">
                 <h3 className="flowchart-io-card-title">Custom functions</h3>
                 <p className="flowchart-io-text">
-                    Package selected blocks into reusable functions. Drag them from Settings onto the
-                    canvas.
+                    Package selected blocks into reusable functions. Drag them from Settings onto
+                    the canvas.
                 </p>
                 <div className="flowchart-io-actions">
                     <input
@@ -159,7 +162,11 @@ function FlowchartIoPanel({
                         placeholder="Function name"
                         aria-label="Custom function name"
                     />
-                    <button type="button" className="flowchart-io-button" onClick={packageSelection}>
+                    <button
+                        type="button"
+                        className="flowchart-io-button"
+                        onClick={packageSelection}
+                    >
                         Package selection
                     </button>
                 </div>
@@ -172,7 +179,10 @@ function FlowchartIoPanel({
                                     className="flowchart-io-custom-function-drag"
                                     draggable
                                     onDragStart={(event) => {
-                                        event.dataTransfer.setData(CUSTOM_FUNCTION_DRAG_MIME, fn.id);
+                                        event.dataTransfer.setData(
+                                            CUSTOM_FUNCTION_DRAG_MIME,
+                                            fn.id
+                                        );
                                         event.dataTransfer.effectAllowed = 'copy';
                                     }}
                                     title="Drag onto canvas"
