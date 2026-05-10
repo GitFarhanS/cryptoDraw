@@ -15,6 +15,12 @@ interface Props {
     snapToGrid: boolean;
     onSnapToGridChange: (value: boolean) => void;
     onResetLocalStorage: () => void;
+    customFunctions: Array<{ id: string; name: string; payload: string }>;
+    onPackageSelectionAsCustomFunction: (name: string) => boolean;
+    onDeleteCustomFunction: (id: string) => void;
+    onCopyCustomFunctionShare: (id: string) => Promise<boolean>;
+    onImportCustomFunctionShare: (text: string) => string;
+    onToast: (message: string, kind: 'success' | 'error') => void;
 }
 
 function SidePanelExpandablePanels({
@@ -24,6 +30,12 @@ function SidePanelExpandablePanels({
     snapToGrid,
     onSnapToGridChange,
     onResetLocalStorage,
+    customFunctions,
+    onPackageSelectionAsCustomFunction,
+    onDeleteCustomFunction,
+    onCopyCustomFunctionShare,
+    onImportCustomFunctionShare,
+    onToast,
 }: Readonly<Props>) {
     const baseId = useId();
     const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -47,6 +59,12 @@ function SidePanelExpandablePanels({
                         snapToGrid={snapToGrid}
                         onSnapToGridChange={onSnapToGridChange}
                         onResetLocalStorage={onResetLocalStorage}
+                        customFunctions={customFunctions}
+                        onPackageSelectionAsCustomFunction={onPackageSelectionAsCustomFunction}
+                        onDeleteCustomFunction={onDeleteCustomFunction}
+                        onCopyCustomFunctionShare={onCopyCustomFunctionShare}
+                        onImportCustomFunctionShare={onImportCustomFunctionShare}
+                        onToast={onToast}
                     />
                 );
             case 'Output':

@@ -8,7 +8,11 @@ import { flushSync } from 'react-dom';
 import './App.scss';
 import CanvasPlacedBlock from './canvas-placed-block';
 import CanvasWires from './canvas-wires';
-import { INPUT_BLOCK_DRAG_MIME, isPlacedBlockType } from './input-blocks/drag-constants';
+import {
+    CUSTOM_FUNCTION_DRAG_MIME,
+    INPUT_BLOCK_DRAG_MIME,
+    isPlacedBlockType,
+} from './input-blocks/drag-constants';
 import { CanvasGraphContext } from './graph/canvas-graph-context';
 import {
     inputPortKeysForBlock,
@@ -38,10 +42,12 @@ const THEME_STORAGE_KEY = 'cryptoDraw.theme';
 const CANVAS_STATE_STORAGE_KEY = 'cryptoDraw.canvasState';
 const SNAP_TO_GRID_STORAGE_KEY = 'cryptoDraw.snapToGrid';
 const CONSENT_KEY = 'cryptoDraw.cookie-consent';
+const CUSTOM_FUNCTIONS_STORAGE_KEY = 'cryptoDraw.customFunctions';
 const MIN_MARQUEE_SIZE = 4;
 const PASTE_STEP = 48;
 const PASTE_WRAP = 6;
 const SNAP_GRID_SIZE = 16;
+const MAX_BLOCKS = 2048;
 type PasteAnchor = { x: number; y: number };
 const THEMES = [
     { value: 'system', label: 'System' },
@@ -149,8 +155,42 @@ function readStoredSnapToGrid() {
     }
 }
 
+function readStoredCustomFunctions() {
+    if (globalThis.window === undefined) {
+        return [] as Array<{ id: string; name: string; payload: string }>;
+    }
+    try {
+        const raw = globalThis.window.localStorage.getItem(CUSTOM_FUNCTIONS_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(
+            (item) =>
+                item &&
+                typeof item.id === 'string' &&
+                typeof item.name === 'string' &&
+                typeof item.payload === 'string'
+        );
+    } catch {
+        return [];
+    }
+}
+
 function snapValue(value: number) {
     return Math.round(value / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
+}
+
+function resolveCustomFunctionName(baseName: string, existing: Array<{ name: string }>) {
+    const trimmed = baseName.trim() || 'Custom function';
+    const existingNames = new Set(existing.map((item) => item.name));
+    if (!existingNames.has(trimmed)) {
+        return trimmed;
+    }
+    let index = 2;
+    while (existingNames.has(`${trimmed} ${index}`)) {
+        index += 1;
+    }
+    return `${trimmed} ${index}`;
 }
 
 function App() {
@@ -197,6 +237,9 @@ function App() {
         canvasY: number;
     }>(null);
     const [wireDrag, setWireDrag] = useState<any>(null);
+    const [customFunctions, setCustomFunctions] =
+        useState<Array<{ id: string; name: string; payload: string }>>(readStoredCustomFunctions);
+    const [toast, setToast] = useState<null | { message: string; kind: 'success' | 'error' }>(null);
 
     const dragStateRef = useRef<any>({
         pointerId: null,
@@ -317,6 +360,40 @@ function App() {
     useEffect(() => {
         saveCanvasState(placedBlocks, edges);
     }, [placedBlocks, edges]);
+
+    useEffect(() => {
+        if (!toast) {
+            return;
+        }
+        const timeoutId = globalThis.setTimeout(() => setToast(null), 5000);
+        return () => globalThis.clearTimeout(timeoutId);
+    }, [toast]);
+
+    const showToast = useCallback((message: string, kind: 'success' | 'error') => {
+        setToast({ message, kind });
+    }, []);
+
+    const canAddBlocks = useCallback(
+        (incomingCount: number) => {
+            if (placedBlocksRef.current.length + incomingCount > MAX_BLOCKS) {
+                showToast(`No more blocks can be pasted or dragged (max ${MAX_BLOCKS}).`, 'error');
+                return false;
+            }
+            return true;
+        },
+        [showToast]
+    );
+
+    useEffect(() => {
+        try {
+            globalThis.localStorage.setItem(
+                CUSTOM_FUNCTIONS_STORAGE_KEY,
+                JSON.stringify(customFunctions)
+            );
+        } catch {
+            // Ignore storage failures.
+        }
+    }, [customFunctions]);
 
     const bumpLayout = useCallback(() => {
         setLayoutEpoch((n) => n + 1);
@@ -591,10 +668,25 @@ function App() {
     const pasteFromClipboard = useCallback(
         async (target?: { x: number; y: number }) => {
             try {
-                const text = await navigator.clipboard.readText();
-                if (!text) {
+                const rawText = await navigator.clipboard.readText();
+                if (!rawText) {
                     return false;
                 }
+
+                let text = rawText;
+                try {
+                    const parsedShare = JSON.parse(rawText);
+                    if (
+                        parsedShare &&
+                        parsedShare.type === 'custom-function' &&
+                        typeof parsedShare.payload === 'string'
+                    ) {
+                        text = parsedShare.payload;
+                    }
+                } catch {
+                    // Not JSON share text; continue with regular base64 flowchart paste.
+                }
+
                 // Reset offset counter when clipboard content changes so
                 // the first paste of new content has zero offset.
                 if (lastClipboardRef.current !== text) {
@@ -603,6 +695,9 @@ function App() {
                 }
                 const parsed = parseFlowchartFromBase64(text);
                 if (!parsed.placedBlocks.length) {
+                    return false;
+                }
+                if (!canAddBlocks(parsed.placedBlocks.length)) {
                     return false;
                 }
 
@@ -705,7 +800,138 @@ function App() {
                 return false;
             }
         },
-        [bumpLayout, closeContextMenus, snapToGrid, viewport]
+        [bumpLayout, canAddBlocks, closeContextMenus, snapToGrid, viewport]
+    );
+
+    const packageSelectionAsCustomFunction = useCallback(
+        (name: string) => {
+            const ids = selectedBlockIdsRef.current;
+            if (!ids.length) {
+                return false;
+            }
+            const blocks = placedBlocksRef.current.filter((b) => ids.includes(b.id));
+            if (!blocks.length) {
+                return false;
+            }
+            const edgesList = edgesRef.current.filter(
+                (e) => ids.includes(e.from.blockId) && ids.includes(e.to.blockId)
+            );
+            const payload = serializeFlowchartToBase64(blocks, edgesList);
+            setCustomFunctions((prev) => [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    name: resolveCustomFunctionName(name, prev),
+                    payload,
+                },
+            ]);
+            return true;
+        },
+        [setCustomFunctions]
+    );
+
+    const copyCustomFunctionShare = useCallback(
+        async (id: string) => {
+            const fn = customFunctions.find((item) => item.id === id);
+            if (!fn) {
+                return false;
+            }
+            const share = JSON.stringify({
+                version: 1,
+                type: 'custom-function',
+                name: fn.name,
+                payload: fn.payload,
+            });
+            try {
+                await navigator.clipboard.writeText(share);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+        [customFunctions]
+    );
+
+    const importCustomFunctionShare = useCallback(
+        (text: string) => {
+            let parsed: any;
+            try {
+                parsed = JSON.parse(text);
+            } catch {
+                throw new Error('Invalid custom function share text.');
+            }
+            if (
+                parsed?.type !== 'custom-function' ||
+                typeof parsed.name !== 'string' ||
+                typeof parsed.payload !== 'string'
+            ) {
+                throw new Error('Invalid custom function share format.');
+            }
+            if (customFunctions.some((item) => item.payload === parsed.payload)) {
+                throw new Error('This custom function is already imported.');
+            }
+            // Validate payload
+            parseFlowchartFromBase64(parsed.payload);
+            const id = crypto.randomUUID();
+            let finalName = parsed.name as string;
+            setCustomFunctions((prev) => {
+                finalName = resolveCustomFunctionName(parsed.name, prev);
+                return [...prev, { id, name: finalName, payload: parsed.payload }];
+            });
+            return finalName;
+        },
+        [customFunctions]
+    );
+
+    const placeCustomFunctionAt = useCallback(
+        (customFunctionId: string, x: number, y: number) => {
+            const fn = customFunctions.find((item) => item.id === customFunctionId);
+            if (!fn) {
+                return false;
+            }
+            const parsed = parseFlowchartFromBase64(fn.payload);
+            if (!parsed.placedBlocks.length) {
+                return false;
+            }
+            if (!canAddBlocks(parsed.placedBlocks.length)) {
+                return false;
+            }
+            const sourceLeft = Math.min(...parsed.placedBlocks.map((block: any) => block.x));
+            const sourceTop = Math.min(...parsed.placedBlocks.map((block: any) => block.y));
+            const idMap = new Map<string, string>();
+            const duplicated = parsed.placedBlocks.map((block: any) => {
+                const newId = crypto.randomUUID();
+                idMap.set(block.id, newId);
+                return {
+                    ...block,
+                    id: newId,
+                    x: snapToGrid
+                        ? snapValue(x + (block.x - sourceLeft))
+                        : x + (block.x - sourceLeft),
+                    y: snapToGrid
+                        ? snapValue(y + (block.y - sourceTop))
+                        : y + (block.y - sourceTop),
+                };
+            });
+
+            const newEdges = parsed.edges
+                .filter((e: any) => idMap.has(e.from.blockId) && idMap.has(e.to.blockId))
+                .map((e: any) => ({
+                    ...e,
+                    id: crypto.randomUUID(),
+                    from: { ...e.from, blockId: idMap.get(e.from.blockId) as string },
+                    to: { ...e.to, blockId: idMap.get(e.to.blockId) as string },
+                }));
+
+            setPlacedBlocks((prev) => [...prev, ...duplicated]);
+            if (newEdges.length) {
+                setEdges((prev) => [...prev, ...newEdges]);
+            }
+            setSelectedBlockIds(duplicated.map((b) => b.id));
+            bumpLayout();
+            return true;
+        },
+        [bumpLayout, canAddBlocks, customFunctions, snapToGrid]
     );
 
     useEffect(() => {
@@ -1304,8 +1530,8 @@ function App() {
     };
 
     const handleCanvasDragOver = (event: ReactDragEvent<HTMLDivElement>) => {
-        const types = Array.from(event.dataTransfer.types);
-        if (!types.includes(INPUT_BLOCK_DRAG_MIME)) {
+        const types = new Set(Array.from(event.dataTransfer.types));
+        if (!types.has(INPUT_BLOCK_DRAG_MIME) && !types.has(CUSTOM_FUNCTION_DRAG_MIME)) {
             return;
         }
         event.preventDefault();
@@ -1313,14 +1539,28 @@ function App() {
     };
 
     const handleCanvasDragEnter = (event: ReactDragEvent<HTMLDivElement>) => {
-        const types = Array.from(event.dataTransfer.types);
-        if (!types.includes(INPUT_BLOCK_DRAG_MIME)) {
+        const types = new Set(Array.from(event.dataTransfer.types));
+        if (!types.has(INPUT_BLOCK_DRAG_MIME) && !types.has(CUSTOM_FUNCTION_DRAG_MIME)) {
             return;
         }
         event.preventDefault();
     };
 
     const handleCanvasDrop = (event: ReactDragEvent<HTMLDivElement>) => {
+        const customFunctionId = event.dataTransfer.getData(CUSTOM_FUNCTION_DRAG_MIME);
+        if (customFunctionId) {
+            event.preventDefault();
+            closeBoardContextMenu();
+            const rect = event.currentTarget.getBoundingClientRect();
+            const z = zoomRef.current;
+            const x = (event.clientX - rect.left) / z;
+            const y = (event.clientY - rect.top) / z;
+            const dropX = snapToGrid ? snapValue(x) : x;
+            const dropY = snapToGrid ? snapValue(y) : y;
+            placeCustomFunctionAt(customFunctionId, dropX, dropY);
+            return;
+        }
+
         const blockType = event.dataTransfer.getData(INPUT_BLOCK_DRAG_MIME);
         if (!isPlacedBlockType(blockType)) {
             return;
@@ -1337,6 +1577,9 @@ function App() {
 
         const created = createPlacedBlock(blockType, dropX, dropY);
         if (!created) {
+            return;
+        }
+        if (!canAddBlocks(1)) {
             return;
         }
 
@@ -1577,8 +1820,33 @@ function App() {
                     snapToGrid={snapToGrid}
                     onSnapToGridChange={setSnapToGrid}
                     onResetLocalStorage={handleResetLocalStorage}
+                    customFunctions={customFunctions}
+                    onPackageSelectionAsCustomFunction={packageSelectionAsCustomFunction}
+                    onDeleteCustomFunction={(id) =>
+                        setCustomFunctions((prev) => prev.filter((item) => item.id !== id))
+                    }
+                    onCopyCustomFunctionShare={copyCustomFunctionShare}
+                    onImportCustomFunctionShare={importCustomFunctionShare}
+                    onToast={showToast}
                 />
             </SidePanel>
+            {toast ? (
+                <div
+                    className={`app-toast app-toast--${toast.kind}`}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <span>{toast.message}</span>
+                    <button
+                        type="button"
+                        className="app-toast__dismiss"
+                        onClick={() => setToast(null)}
+                        aria-label="Dismiss notification"
+                    >
+                        ×
+                    </button>
+                </div>
+            ) : null}
             {showConsent && (
                 <div className="cookie-modal-overlay">
                     <div className="cookie-modal">
