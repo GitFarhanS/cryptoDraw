@@ -471,6 +471,7 @@ body[data-theme='solarized-dark'] {
     align-self: stretch;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .side-panel.is-open .side-panel-drawer {
@@ -481,15 +482,39 @@ body[data-theme='solarized-dark'] {
 .side-panel-inner {
     flex: 1;
     width: min(288px, 92vw);
-    min-height: 100%;
+    min-height: 0;
     padding: 12px;
     background: var(--panel-surface-strong);
     border-left: 1px solid var(--panel-border);
     border-radius: 14px 0 0 14px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     display: flex;
     flex-direction: column;
+}
+
+.sp-expandable-root {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.side-panel.is-open .side-panel-toggle {
+    border-left: none;
+    box-shadow: none;
+}
+
+.sp-panels {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--chip-border) 72%, transparent) transparent;
 
@@ -514,21 +539,12 @@ body[data-theme='solarized-dark'] {
     }
 }
 
-.side-panel.is-open .side-panel-toggle {
-    border-left: none;
-    box-shadow: none;
-}
-
-.sp-panels {
-    display: flex;
-    flex-direction: column;
+.sp-panels--expanded {
     flex: 1;
     min-height: 0;
-    gap: 8px;
-}
-
-.sp-panels--expanded {
-    min-height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .sp-panel-row {
@@ -696,6 +712,7 @@ body[data-theme='solarized-dark'] {
 }
 
 .theme-panel {
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -821,6 +838,29 @@ body[data-theme='solarized-dark'] .theme-select {
 }
 
 .cipher-templates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.cipher-templates-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.cipher-templates-group__title {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--app-muted);
+}
+
+.cipher-templates-group__cards {
     display: flex;
     flex-direction: column;
     gap: 12px;

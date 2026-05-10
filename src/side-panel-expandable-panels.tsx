@@ -114,25 +114,20 @@ function SidePanelExpandablePanels({
         }
     };
 
-    if (expandedIndex !== null) {
-        const title = PANELS[expandedIndex];
-        const titleId = `${baseId}-title-${expandedIndex}`;
-        const toneFlow = expandedIndex / PANEL_FLOW_DENOM;
-        const toneBand = toneFlow >= 0.55 ? 'deep' : 'mid';
-
-        return (
+    const expandedBody =
+        expandedIndex !== null ? (
             <div className="sp-panels sp-panels--expanded">
                 <section
                     id={`${baseId}-region-${expandedIndex}`}
                     className="sp-panel-expanded"
                     style={
                         {
-                            '--sp-tone-flow': toneFlow,
-                            '--sp-hc-outline': PANEL_HC_OUTLINES[title],
+                            '--sp-tone-flow': expandedIndex / PANEL_FLOW_DENOM,
+                            '--sp-hc-outline': PANEL_HC_OUTLINES[PANELS[expandedIndex]],
                         } as React.CSSProperties
                     }
-                    data-tone-band={toneBand}
-                    aria-labelledby={titleId}
+                    data-tone-band={expandedIndex / PANEL_FLOW_DENOM >= 0.55 ? 'deep' : 'mid'}
+                    aria-labelledby={`${baseId}-title-${expandedIndex}`}
                 >
                     <div className="sp-panel-expanded-header">
                         <button
@@ -143,41 +138,42 @@ function SidePanelExpandablePanels({
                         >
                             Back
                         </button>
-                        <h2 className="sp-panel-expanded-title" id={titleId}>
-                            {title}
+                        <h2 className="sp-panel-expanded-title" id={`${baseId}-title-${expandedIndex}`}>
+                            {PANELS[expandedIndex]}
                         </h2>
                     </div>
-                    <div className="sp-panel-expanded-body">{renderPanelContent(title)}</div>
+                    <div className="sp-panel-expanded-body">
+                        {renderPanelContent(PANELS[expandedIndex])}
+                    </div>
                 </section>
             </div>
+        ) : (
+            <div className="sp-panels">
+                {PANELS.map((label, index) => (
+                    <button
+                        key={label}
+                        type="button"
+                        className="sp-panel-row"
+                        style={
+                            {
+                                '--sp-tone-flow': index / PANEL_FLOW_DENOM,
+                                '--sp-hc-outline': PANEL_HC_OUTLINES[label],
+                            } as React.CSSProperties
+                        }
+                        data-tone-band={index / PANEL_FLOW_DENOM >= 0.55 ? 'deep' : 'mid'}
+                        onClick={() => setExpandedIndex(index)}
+                        aria-expanded={false}
+                    >
+                        <span className="sp-panel-row-label">{label}</span>
+                        <span className="sp-panel-row-chevron" aria-hidden>
+                            ›
+                        </span>
+                    </button>
+                ))}
+            </div>
         );
-    }
 
-    return (
-        <div className="sp-panels">
-            {PANELS.map((label, index) => (
-                <button
-                    key={label}
-                    type="button"
-                    className="sp-panel-row"
-                    style={
-                        {
-                            '--sp-tone-flow': index / PANEL_FLOW_DENOM,
-                            '--sp-hc-outline': PANEL_HC_OUTLINES[label],
-                        } as React.CSSProperties
-                    }
-                    data-tone-band={index / PANEL_FLOW_DENOM >= 0.55 ? 'deep' : 'mid'}
-                    onClick={() => setExpandedIndex(index)}
-                    aria-expanded={false}
-                >
-                    <span className="sp-panel-row-label">{label}</span>
-                    <span className="sp-panel-row-chevron" aria-hidden>
-                        ›
-                    </span>
-                </button>
-            ))}
-        </div>
-    );
+    return <div className="sp-expandable-root">{expandedBody}</div>;
 }
 
 export default SidePanelExpandablePanels;

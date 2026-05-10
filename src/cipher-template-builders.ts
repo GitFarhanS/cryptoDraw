@@ -3,8 +3,11 @@ import { CHACHA_QUARTER_PRESETS } from './stream-block/chacha20-ietf'
 
 export type CipherTemplateId = 'rsa' | 'chacha20' | 'chachaQrArx' | 'des' | '3des' | 'aes'
 
+export type CipherTemplateCategory = 'Asymmetric' | 'Stream' | 'Block'
+
 export interface CipherTemplateMeta {
     id: CipherTemplateId
+    category: CipherTemplateCategory
     title: string
     description: string
 }
@@ -12,41 +15,50 @@ export interface CipherTemplateMeta {
 export const CIPHER_TEMPLATE_META: CipherTemplateMeta[] = [
     {
         id: 'rsa',
+        category: 'Asymmetric',
         title: 'RSA',
         description:
             'Toy 32-bit RSA step: m^e mod n (hex). Example m=7, e=3, n=33 → 0x0d. Swap operands for your modulus.',
     },
     {
         id: 'chacha20',
+        category: 'Stream',
         title: 'ChaCha20',
         description:
             'RFC 8439 ChaCha20-IETF composed from Stream blocks: Init + eighty chained QuarterRounds (col/diag presets cycling ten rounds) + Finalize → four keystream bytes; XOR with ASCII plaintext ChaC. Init packs constants/key/nonce/counter as LE words — unlike Join lots.',
     },
     {
         id: 'chachaQrArx',
+        category: 'Stream',
         title: 'ChaCha quarter-round (ARX)',
         description:
             'Toy limbs (32-bit binary operands): mirrors one isolated ChaCha quarter-round via Add/XOR/circular left shift using rotations 16,12,8,7 — pedagogical only; encoding matches evaluate-graph BE/bit widths.',
     },
     {
         id: 'des',
+        category: 'Block',
         title: 'DES',
         description:
             'DES-shaped XOR layer: initial permutation (IP), 32-bit limb XOR with key, final permutation (FP). Full DES still needs Feistel rounds and S-boxes.',
     },
     {
         id: '3des',
+        category: 'Block',
         title: '3DES',
         description:
             'Three successive 64-bit XOR rounds with three keys (split/join). Illustrates layered mixing only; not standard EDE triple-DES.',
     },
     {
         id: 'aes',
+        category: 'Block',
         title: 'AES',
         description:
             'AES-128 initial round: AddRoundKey (four 32-bit XOR limbs), then SubBytes on the state — matches one real AES step before ShiftRows.',
     },
 ]
+
+/** Panel section order for grouped template listing. */
+export const CIPHER_TEMPLATE_CATEGORY_ORDER: CipherTemplateCategory[] = ['Asymmetric', 'Stream', 'Block']
 
 const opHex: Pick<PlacedBlockRecord, 'opDisplayMode' | 'opDisplayFormat' | 'opShiftMode'> = {
     opDisplayMode: 'manual',
@@ -78,12 +90,12 @@ function buildRsa(): { placedBlocks: PlacedBlockRecord[]; edges: GraphEdge[] } {
     const out = nid()
 
     const placedBlocks: PlacedBlockRecord[] = [
-        { id: m, type: 'hex', x: 80, y: 120, text: '07' },
-        { id: e, type: 'hex', x: 80, y: 260, text: '03' },
-        { id: n, type: 'hex', x: 80, y: 400, text: '21' },
-        { id: pow, type: 'opPow', x: 360, y: 180, ...opHex },
-        { id: mod, type: 'opMod', x: 600, y: 220, ...opHex },
-        { id: out, type: 'output', x: 840, y: 220 },
+        { id: m, type: 'hex', x: 72, y: 120, text: '07' },
+        { id: e, type: 'hex', x: 72, y: 268, text: '03' },
+        { id: n, type: 'hex', x: 72, y: 416, text: '21' },
+        { id: pow, type: 'opPow', x: 372, y: 188, ...opHex },
+        { id: mod, type: 'opMod', x: 616, y: 228, ...opHex },
+        { id: out, type: 'output', x: 868, y: 228 },
     ]
 
     const edges: GraphEdge[] = [
@@ -111,10 +123,17 @@ function buildChaCha20(): { placedBlocks: PlacedBlockRecord[]; edges: GraphEdge[
     const out = nid()
 
     const cols = 8
-    const qrBaseX = 380
-    const qrBaseY = 40
-    const cellW = 108
-    const cellH = 48
+    const qrBaseX = 420
+    const qrBaseY = 44
+    const cellW = 118
+    const cellH = 54
+    const gridRight = qrBaseX + cols * cellW
+    const postGridPad = 108
+    const finX = gridRight + postGridPad
+    const splitX = gridRight + postGridPad + 368
+    const xorColX = gridRight + postGridPad + 568
+    const joinX = gridRight + postGridPad + 788
+    const outX = gridRight + postGridPad + 1018
 
     const placedBlocks: PlacedBlockRecord[] = [
         { id: pt, type: 'ascii', x: 60, y: 160, text: 'ChaC' },
@@ -149,15 +168,15 @@ function buildChaCha20(): { placedBlocks: PlacedBlockRecord[]; edges: GraphEdge[
         {
             id: fin,
             type: 'chachaIetfFinalize',
-            x: qrBaseX + cols * cellW + 80,
+            x: finX,
             y: qrBaseY + 4 * cellH,
             chachaOutputByteLength: 4,
         },
-        { id: sPt, type: 'splitIntoLots', x: qrBaseX + cols * cellW + 340, y: 120, blockCount: 4 },
-        { id: sKs, type: 'splitIntoLots', x: qrBaseX + cols * cellW + 340, y: 280, blockCount: 4 },
-        ...xors.map((id, i) => ({ id, type: 'opXor' as const, x: qrBaseX + cols * cellW + 520, y: 80 + i * 72, ...opHex })),
-        { id: join, type: 'joinLots', x: qrBaseX + cols * cellW + 720, y: 200, joinCount: 4 },
-        { id: out, type: 'output', x: qrBaseX + cols * cellW + 940, y: 220 },
+        { id: sPt, type: 'splitIntoLots', x: splitX, y: 120, blockCount: 4 },
+        { id: sKs, type: 'splitIntoLots', x: splitX, y: 296, blockCount: 4 },
+        ...xors.map((id, i) => ({ id, type: 'opXor' as const, x: xorColX, y: 84 + i * 76, ...opHex })),
+        { id: join, type: 'joinLots', x: joinX, y: 208, joinCount: 4 },
+        { id: out, type: 'output', x: outX, y: 228 },
     ]
 
     const edges: GraphEdge[] = [
@@ -218,6 +237,7 @@ function buildChaChaQrArxDemo(): { placedBlocks: PlacedBlockRecord[]; edges: Gra
         opShiftMode: 'circular',
     }
 
+    const arxX = 328
     const placedBlocks: PlacedBlockRecord[] = [
         { id: ha, type: 'binary', x: 40, y: 40, text: bin32(1) },
         { id: hb, type: 'binary', x: 40, y: 120, text: bin32(2) },
@@ -227,20 +247,20 @@ function buildChaChaQrArxDemo(): { placedBlocks: PlacedBlockRecord[]; edges: Gra
         { id: k12, type: 'decimal', x: 40, y: 440, text: '12' },
         { id: k8, type: 'decimal', x: 40, y: 500, text: '8' },
         { id: k7, type: 'decimal', x: 40, y: 560, text: '7' },
-        { id: n1, type: 'opAdd', x: 280, y: 60, ...opBinLog },
-        { id: n2, type: 'opXor', x: 420, y: 60, ...opBinLog },
-        { id: n3, type: 'opLeftShift', x: 560, y: 60, ...opBinCirc },
-        { id: n4, type: 'opAdd', x: 280, y: 160, ...opBinLog },
-        { id: n5, type: 'opXor', x: 420, y: 160, ...opBinLog },
-        { id: n6, type: 'opLeftShift', x: 560, y: 160, ...opBinCirc },
-        { id: n7, type: 'opAdd', x: 280, y: 260, ...opBinLog },
-        { id: n8, type: 'opXor', x: 420, y: 260, ...opBinLog },
-        { id: n9, type: 'opLeftShift', x: 560, y: 260, ...opBinCirc },
-        { id: n10, type: 'opAdd', x: 280, y: 360, ...opBinLog },
-        { id: n11, type: 'opXor', x: 420, y: 360, ...opBinLog },
-        { id: n12, type: 'opLeftShift', x: 560, y: 360, ...opBinCirc },
-        { id: join, type: 'joinLots', x: 760, y: 220, joinCount: 4 },
-        { id: out, type: 'output', x: 980, y: 240 },
+        { id: n1, type: 'opAdd', x: arxX, y: 60, ...opBinLog },
+        { id: n2, type: 'opXor', x: arxX + 140, y: 60, ...opBinLog },
+        { id: n3, type: 'opLeftShift', x: arxX + 280, y: 60, ...opBinCirc },
+        { id: n4, type: 'opAdd', x: arxX, y: 160, ...opBinLog },
+        { id: n5, type: 'opXor', x: arxX + 140, y: 160, ...opBinLog },
+        { id: n6, type: 'opLeftShift', x: arxX + 280, y: 160, ...opBinCirc },
+        { id: n7, type: 'opAdd', x: arxX, y: 260, ...opBinLog },
+        { id: n8, type: 'opXor', x: arxX + 140, y: 260, ...opBinLog },
+        { id: n9, type: 'opLeftShift', x: arxX + 280, y: 260, ...opBinCirc },
+        { id: n10, type: 'opAdd', x: arxX, y: 360, ...opBinLog },
+        { id: n11, type: 'opXor', x: arxX + 140, y: 360, ...opBinLog },
+        { id: n12, type: 'opLeftShift', x: arxX + 280, y: 360, ...opBinCirc },
+        { id: join, type: 'joinLots', x: arxX + 500, y: 220, joinCount: 4 },
+        { id: out, type: 'output', x: arxX + 720, y: 240 },
     ]
 
     const edges: GraphEdge[] = [
@@ -292,30 +312,30 @@ function buildDesIpXorFp(): { placedBlocks: PlacedBlockRecord[]; edges: GraphEdg
     const out = nid()
 
     const placedBlocks: PlacedBlockRecord[] = [
-        { id: pt, type: 'hex', x: 40, y: 220, text: '0123456789abcdef' },
-        { id: key, type: 'hex', x: 40, y: 380, text: '133457799bbcdff1' },
+        { id: pt, type: 'hex', x: 36, y: 224, text: '0123456789abcdef' },
+        { id: key, type: 'hex', x: 36, y: 388, text: '133457799bbcdff1' },
         {
             id: ip,
             type: 'permuteReorder',
-            x: 260,
-            y: 160,
+            x: 268,
+            y: 164,
             permuteMode: 'bits',
             permutePreset: 'desIp',
         },
-        { id: sPt, type: 'splitIntoLots', x: 460, y: 140, blockCount: 2 },
-        { id: sK, type: 'splitIntoLots', x: 460, y: 320, blockCount: 2 },
-        { id: x0, type: 'opXor', x: 680, y: 140, ...opHex },
-        { id: x1, type: 'opXor', x: 680, y: 260, ...opHex },
-        { id: j, type: 'joinLots', x: 880, y: 200, joinCount: 2 },
+        { id: sPt, type: 'splitIntoLots', x: 472, y: 144, blockCount: 2 },
+        { id: sK, type: 'splitIntoLots', x: 472, y: 328, blockCount: 2 },
+        { id: x0, type: 'opXor', x: 696, y: 144, ...opHex },
+        { id: x1, type: 'opXor', x: 696, y: 268, ...opHex },
+        { id: j, type: 'joinLots', x: 896, y: 204, joinCount: 2 },
         {
             id: fp,
             type: 'permuteReorder',
-            x: 1060,
-            y: 200,
+            x: 1080,
+            y: 204,
             permuteMode: 'bits',
             permutePreset: 'desFp',
         },
-        { id: out, type: 'output', x: 1260, y: 220 },
+        { id: out, type: 'output', x: 1284, y: 224 },
     ]
 
     const edges: GraphEdge[] = [
@@ -366,26 +386,26 @@ function buildTripleXor64(
     const out = nid()
 
     const placedBlocks: PlacedBlockRecord[] = [
-        { id: p, type: 'hex', x: 40, y: 260, text: plainHex },
-        { id: key1, type: 'hex', x: 40, y: 40, text: k1 },
-        { id: key2, type: 'hex', x: 40, y: 140, text: k2 },
-        { id: key3, type: 'hex', x: 40, y: 420, text: k3 },
-        { id: sP1, type: 'splitIntoLots', x: 260, y: 240, blockCount: 2 },
-        { id: sK1, type: 'splitIntoLots', x: 260, y: 20, blockCount: 2 },
-        { id: x0, type: 'opXor', x: 480, y: 180, ...opHex },
-        { id: x1, type: 'opXor', x: 480, y: 300, ...opHex },
-        { id: j1, type: 'joinLots', x: 660, y: 240, joinCount: 2 },
-        { id: sM2, type: 'splitIntoLots', x: 820, y: 240, blockCount: 2 },
-        { id: sK2, type: 'splitIntoLots', x: 820, y: 120, blockCount: 2 },
-        { id: x2, type: 'opXor', x: 1040, y: 180, ...opHex },
-        { id: x3, type: 'opXor', x: 1040, y: 300, ...opHex },
-        { id: j2, type: 'joinLots', x: 1220, y: 240, joinCount: 2 },
-        { id: sM3, type: 'splitIntoLots', x: 1380, y: 240, blockCount: 2 },
-        { id: sK3, type: 'splitIntoLots', x: 1380, y: 400, blockCount: 2 },
-        { id: x4, type: 'opXor', x: 1600, y: 180, ...opHex },
-        { id: x5, type: 'opXor', x: 1600, y: 300, ...opHex },
-        { id: j3, type: 'joinLots', x: 1780, y: 240, joinCount: 2 },
-        { id: out, type: 'output', x: 1980, y: 240 },
+        { id: p, type: 'hex', x: 40, y: 272, text: plainHex },
+        { id: key1, type: 'hex', x: 40, y: 28, text: k1 },
+        { id: key2, type: 'hex', x: 40, y: 148, text: k2 },
+        { id: key3, type: 'hex', x: 40, y: 436, text: k3 },
+        { id: sP1, type: 'splitIntoLots', x: 260, y: 252, blockCount: 2 },
+        { id: sK1, type: 'splitIntoLots', x: 260, y: 12, blockCount: 2 },
+        { id: x0, type: 'opXor', x: 480, y: 188, ...opHex },
+        { id: x1, type: 'opXor', x: 480, y: 312, ...opHex },
+        { id: j1, type: 'joinLots', x: 660, y: 252, joinCount: 2 },
+        { id: sM2, type: 'splitIntoLots', x: 820, y: 252, blockCount: 2 },
+        { id: sK2, type: 'splitIntoLots', x: 820, y: 124, blockCount: 2 },
+        { id: x2, type: 'opXor', x: 1040, y: 188, ...opHex },
+        { id: x3, type: 'opXor', x: 1040, y: 312, ...opHex },
+        { id: j2, type: 'joinLots', x: 1220, y: 252, joinCount: 2 },
+        { id: sM3, type: 'splitIntoLots', x: 1380, y: 252, blockCount: 2 },
+        { id: sK3, type: 'splitIntoLots', x: 1380, y: 408, blockCount: 2 },
+        { id: x4, type: 'opXor', x: 1600, y: 188, ...opHex },
+        { id: x5, type: 'opXor', x: 1600, y: 312, ...opHex },
+        { id: j3, type: 'joinLots', x: 1780, y: 252, joinCount: 2 },
+        { id: out, type: 'output', x: 1980, y: 252 },
     ]
 
     const edges: GraphEdge[] = [
@@ -440,14 +460,14 @@ function buildAesAddRoundKeySubBytes(): { placedBlocks: PlacedBlockRecord[]; edg
     const out = nid()
 
     const placedBlocks: PlacedBlockRecord[] = [
-        { id: p, type: 'hex', x: 60, y: 140, text: '3243f6a8885a308d313198a2e0370734' },
-        { id: k, type: 'hex', x: 60, y: 320, text: '2b7e151628aed2a6abf7158809cf4f3c' },
-        { id: sP, type: 'splitIntoLots', x: 280, y: 120, blockCount: 4 },
-        { id: sK, type: 'splitIntoLots', x: 280, y: 280, blockCount: 4 },
-        ...x.map((id, i) => ({ id, type: 'opXor' as const, x: 500, y: 60 + i * 72, ...opHex })),
-        { id: join, type: 'joinLots', x: 720, y: 200, joinCount: 4 },
-        { id: sub, type: 'subBytes', x: 920, y: 220 },
-        { id: out, type: 'output', x: 1120, y: 220 },
+        { id: p, type: 'hex', x: 52, y: 144, text: '3243f6a8885a308d313198a2e0370734' },
+        { id: k, type: 'hex', x: 52, y: 328, text: '2b7e151628aed2a6abf7158809cf4f3c' },
+        { id: sP, type: 'splitIntoLots', x: 296, y: 124, blockCount: 4 },
+        { id: sK, type: 'splitIntoLots', x: 296, y: 288, blockCount: 4 },
+        ...x.map((id, i) => ({ id, type: 'opXor' as const, x: 524, y: 56 + i * 76, ...opHex })),
+        { id: join, type: 'joinLots', x: 744, y: 204, joinCount: 4 },
+        { id: sub, type: 'subBytes', x: 948, y: 224 },
+        { id: out, type: 'output', x: 1156, y: 224 },
     ]
 
     const edges: GraphEdge[] = [

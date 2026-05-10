@@ -1274,10 +1274,14 @@ function App() {
     useEffect(() => {
         const updateViewport = () => {
             const z = zoomRef.current;
+            const togglePx = 32;
+            const drawerPx = sidePanelOpen ? Math.min(288, window.innerWidth * 0.92) : 0;
+            const rightChromePx = togglePx + drawerPx;
+            const usableInnerWidthPx = Math.max(0, window.innerWidth - rightChromePx);
             setViewport({
                 left: window.scrollX / z,
                 top: window.scrollY / z,
-                width: window.innerWidth / z,
+                width: usableInnerWidthPx / z,
                 height: window.innerHeight / z,
             });
             bumpLayout();
@@ -1291,7 +1295,7 @@ function App() {
             window.removeEventListener('scroll', updateViewport);
             window.removeEventListener('resize', updateViewport);
         };
-    }, [bumpLayout, zoom]);
+    }, [bumpLayout, zoom, sidePanelOpen]);
 
     // Reset paste offset counter when the viewport changes so pastes from a
     // new view start at zero offset.
@@ -1637,8 +1641,17 @@ function App() {
             ) {
                 const minX = Math.min(...parsed.placedBlocks.map((b: { x: number }) => b.x));
                 const minY = Math.min(...parsed.placedBlocks.map((b: { y: number }) => b.y));
-                const dx = viewport.left + VIEWPORT_IMPORT_PADDING - minX;
-                const dy = viewport.top + VIEWPORT_IMPORT_PADDING - minY;
+                const maxX = Math.max(...parsed.placedBlocks.map((b: { x: number }) => b.x));
+                const maxY = Math.max(...parsed.placedBlocks.map((b: { y: number }) => b.y));
+                const graphCx = (minX + maxX) / 2;
+                const graphCy = (minY + maxY) / 2;
+                const pad = VIEWPORT_IMPORT_PADDING;
+                const usableW = Math.max(0, viewport.width - 2 * pad);
+                const usableH = Math.max(0, viewport.height - 2 * pad);
+                const targetCx = viewport.left + pad + usableW / 2;
+                const targetCy = viewport.top + pad + usableH / 2;
+                const dx = targetCx - graphCx;
+                const dy = targetCy - graphCy;
                 parsed = {
                     ...parsed,
                     placedBlocks: parsed.placedBlocks.map((block: { x: number; y: number }) => {
