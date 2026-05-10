@@ -4,8 +4,9 @@ import FlowchartIoPanel from './flowchart-settings-panel';
 import InputBlocks from './input-blocks/input-blocks';
 import OperationsBlocks from './operations-block/operations-blocks';
 import OutputBlock from './output-block/output-block';
+import SboxBlocks from './sbox-block/sbox-blocks';
 
-const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Settings'];
+const PANELS = ['Input', 'Converter', 'Operations', 'S-Boxes', 'Output', 'Settings'];
 
 interface Props {
     onExportFlowchart: () => string;
@@ -35,6 +36,8 @@ function SidePanelExpandablePanels({
                 return <ConverterBlocks />;
             case 'Operations':
                 return <OperationsBlocks />;
+            case 'S-Boxes':
+                return <SboxBlocks />;
             case 'Settings':
                 return (
                     <FlowchartIoPanel

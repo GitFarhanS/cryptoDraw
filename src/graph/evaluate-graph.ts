@@ -1,5 +1,10 @@
-import { INPUT_BLOCK_TYPES, OPERATION_BLOCK_TYPES } from '../input-blocks/drag-constants';
+import {
+    INPUT_BLOCK_TYPES,
+    OPERATION_BLOCK_TYPES,
+    SBOX_BLOCK_TYPES,
+} from '../input-blocks/drag-constants';
 import { parseBytesFromFormat, serializeBytesToFormat } from '../converter-block/format-bytes';
+import { applySubBytes } from '../sbox-block/aes-sbox';
 import {
     inputPortKeysForBlock,
     isEdgeValidForBlocks,
@@ -359,6 +364,16 @@ export function evaluateGraph(
 
         if (type === 'output') {
             continue;
+        }
+
+        if (SBOX_BLOCK_TYPES.includes(type as (typeof SBOX_BLOCK_TYPES)[number])) {
+            const input = getPort(blockId, 'in')
+            const outBytes = applySubBytes(input)
+            setPort(blockId, 'out', outBytes, {
+                format: 'hex',
+                bitLength: outBytes.length * 8,
+            })
+            continue
         }
 
         if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {
