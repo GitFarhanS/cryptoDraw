@@ -139,6 +139,71 @@ describe('evaluateGraph data transfer', () => {
         expect(serializeBytesToFormat('binary', bytes!).slice(0, bitLength)).toBe('1101')
     })
 
+    it('DES IP maps standard DES input bit 58 (1-based) to output MSB', () => {
+        const blocks = [
+            {
+                id: 'src',
+                type: 'hex',
+                x: 0,
+                y: 0,
+                text: '0000000000000040',
+            },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desIp',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        const bitLength = result.portBitLengths.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(bitLength).toBe(64)
+        const bits = serializeBytesToFormat('binary', bytes!).slice(0, bitLength!)
+        expect(bits[0]).toBe('1')
+        expect(bits.slice(1)).toBe('0'.repeat(63))
+    })
+
+    it('DES IP followed by DES FP round-trips a 64-bit block', () => {
+        const blocks = [
+            { id: 'src', type: 'hex', x: 0, y: 0, text: '0123456789abcdef' },
+            {
+                id: 'ip',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desIp',
+            },
+            {
+                id: 'fp',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desFp',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'ip', 'in'),
+            edge('e2', 'ip', 'out', 'fp', 'in'),
+            edge('e3', 'fp', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('hex', bytes!).toLowerCase()).toBe('0123456789abcdef')
+    })
+
     it('operation block produces deterministic output from two wired inputs', () => {
         const blocks = [
             { id: 'a', type: 'hex', x: 0, y: 0, text: '0f' },
