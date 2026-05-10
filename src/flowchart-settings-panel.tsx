@@ -3,7 +3,7 @@ import { CUSTOM_FUNCTION_DRAG_MIME } from './input-blocks/drag-constants';
 
 interface Props {
     onExportFlowchart: () => string;
-    onImportFlowchart: (base64: string) => void;
+    onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
     snapToGrid: boolean;
     onSnapToGridChange: (value: boolean) => void;

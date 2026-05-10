@@ -19,11 +19,11 @@ const PANELS = [
     'Templates',
 ] as const;
 
-const VISUAL_TONE_COUNT = 5;
+const PANEL_FLOW_DENOM = Math.max(1, PANELS.length - 1);
 
 interface Props {
     onExportFlowchart: () => string;
-    onImportFlowchart: (base64: string) => void;
+    onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
     snapToGrid: boolean;
     onSnapToGridChange: (value: boolean) => void;
@@ -92,7 +92,9 @@ function SidePanelExpandablePanels({
                     />
                 );
             case 'Templates':
-                return <CipherTemplatesPanel onImportFlowchart={onImportFlowchart} />;
+                return (
+                    <CipherTemplatesPanel onImportFlowchart={onImportFlowchart} onToast={onToast} />
+                );
             case 'Output':
                 return <OutputBlock draggableToCanvas />;
             default:
@@ -103,14 +105,16 @@ function SidePanelExpandablePanels({
     if (expandedIndex !== null) {
         const title = PANELS[expandedIndex];
         const titleId = `${baseId}-title-${expandedIndex}`;
-        const toneIndex = expandedIndex % VISUAL_TONE_COUNT;
+        const toneFlow = expandedIndex / PANEL_FLOW_DENOM;
+        const toneBand = toneFlow >= 0.55 ? 'deep' : 'mid';
 
         return (
             <div className="sp-panels sp-panels--expanded">
                 <section
                     id={`${baseId}-region-${expandedIndex}`}
                     className="sp-panel-expanded"
-                    data-tone={toneIndex}
+                    style={{ '--sp-tone-flow': toneFlow } as React.CSSProperties}
+                    data-tone-band={toneBand}
                     aria-labelledby={titleId}
                 >
                     <div className="sp-panel-expanded-header">
@@ -139,7 +143,8 @@ function SidePanelExpandablePanels({
                     key={label}
                     type="button"
                     className="sp-panel-row"
-                    data-tone={index % VISUAL_TONE_COUNT}
+                    style={{ '--sp-tone-flow': index / PANEL_FLOW_DENOM } as React.CSSProperties}
+                    data-tone-band={index / PANEL_FLOW_DENOM >= 0.55 ? 'deep' : 'mid'}
                     onClick={() => setExpandedIndex(index)}
                     aria-expanded={false}
                 >

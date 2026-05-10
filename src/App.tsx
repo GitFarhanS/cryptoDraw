@@ -47,6 +47,7 @@ const MIN_MARQUEE_SIZE = 4;
 const PASTE_STEP = 48;
 const PASTE_WRAP = 6;
 const SNAP_GRID_SIZE = 16;
+const VIEWPORT_IMPORT_PADDING = 24;
 const MAX_BLOCKS = 2048;
 type PasteAnchor = { x: number; y: number };
 const THEMES = [
@@ -1626,14 +1627,39 @@ function App() {
     );
 
     const handleImportFlowchart = useCallback(
-        (base64Text: string) => {
-            const parsed = parseFlowchartFromBase64(base64Text);
+        (base64Text: string, options?: { anchorToViewport?: boolean }) => {
+            let parsed = parseFlowchartFromBase64(base64Text);
+            if (
+                options?.anchorToViewport &&
+                parsed.placedBlocks.length > 0 &&
+                viewport.width > 0 &&
+                viewport.height > 0
+            ) {
+                const minX = Math.min(...parsed.placedBlocks.map((b: { x: number }) => b.x));
+                const minY = Math.min(...parsed.placedBlocks.map((b: { y: number }) => b.y));
+                const dx = viewport.left + VIEWPORT_IMPORT_PADDING - minX;
+                const dy = viewport.top + VIEWPORT_IMPORT_PADDING - minY;
+                parsed = {
+                    ...parsed,
+                    placedBlocks: parsed.placedBlocks.map((block: { x: number; y: number }) => {
+                        const nx = block.x + dx;
+                        const ny = block.y + dy;
+                        return {
+                            ...block,
+                            x: snapToGrid ? snapValue(nx) : nx,
+                            y: snapToGrid ? snapValue(ny) : ny,
+                        };
+                    }),
+                };
+            }
             setPlacedBlocks(parsed.placedBlocks);
             setEdges(parsed.edges);
             bumpLayout();
-            scrollToBlocks(parsed.placedBlocks);
+            if (!options?.anchorToViewport) {
+                scrollToBlocks(parsed.placedBlocks);
+            }
         },
-        [bumpLayout, scrollToBlocks]
+        [bumpLayout, scrollToBlocks, snapToGrid, viewport.height, viewport.left, viewport.top, viewport.width]
     );
 
     const handleClearFlowchart = useCallback(() => {
