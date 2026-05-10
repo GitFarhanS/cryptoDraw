@@ -5,6 +5,7 @@ import type {
     PointerEvent as ReactPointerEvent,
 } from 'react';
 import { flushSync } from 'react-dom';
+import Carousel from 'react-bootstrap/Carousel';
 import './App.scss';
 import CanvasPlacedBlock from './canvas-placed-block';
 import CanvasWires from './canvas-wires';
@@ -40,6 +41,7 @@ const MAX_ZOOM = 3;
 const ZOOM_WHEEL_SENSITIVITY = 0.0018;
 const THEME_STORAGE_KEY = 'cryptoDraw.theme';
 const CANVAS_STATE_STORAGE_KEY = 'cryptoDraw.canvasState';
+const CANVAS_MULTI_STATE_STORAGE_KEY = 'cryptoDraw.canvasMultiState';
 const SNAP_TO_GRID_STORAGE_KEY = 'cryptoDraw.snapToGrid';
 const CONSENT_KEY = 'cryptoDraw.cookie-consent';
 const CUSTOM_FUNCTIONS_STORAGE_KEY = 'cryptoDraw.customFunctions';
@@ -49,7 +51,21 @@ const PASTE_WRAP = 6;
 const SNAP_GRID_SIZE = 16;
 const VIEWPORT_IMPORT_PADDING = 24;
 const MAX_BLOCKS = 2048;
+const MAX_CANVASES = 100;
 type PasteAnchor = { x: number; y: number };
+type CanvasBoardState = {
+    id: string;
+    name: string;
+    placedBlocks: any[];
+    edges: any[];
+};
+type MultiCanvasState = {
+    version: 1;
+    activeCanvasId: string;
+    canvases: CanvasBoardState[];
+};
+type StateUpdater<T> = T | ((prev: T) => T);
+const EMPTY_ITEMS: any[] = [];
 const THEMES = [
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Light' },
@@ -89,6 +105,60 @@ function loadCanvasState() {
     }
 }
 
+function makeCanvasId() {
+    return `canvas-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createCanvasBoard(index: number, initial?: { placedBlocks: any[]; edges: any[] }): CanvasBoardState {
+    return {
+        id: makeCanvasId(),
+        name: `Canvas ${index + 1}`,
+        placedBlocks: initial?.placedBlocks ?? [],
+        edges: initial?.edges ?? [],
+    };
+}
+
+function loadMultiCanvasState(): MultiCanvasState {
+    if (globalThis.window === undefined) {
+        const first = createCanvasBoard(0);
+        return { version: 1, activeCanvasId: first.id, canvases: [first] };
+    }
+
+    try {
+        const stored = globalThis.window.localStorage.getItem(CANVAS_MULTI_STATE_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored) as Partial<MultiCanvasState>;
+            if (Array.isArray(parsed.canvases) && parsed.canvases.length > 0) {
+                const canvases = parsed.canvases
+                    .filter((canvas) => canvas && typeof canvas.id === 'string')
+                    .map((canvas, index) => ({
+                        id: canvas.id,
+                        name:
+                            typeof canvas.name === 'string' && canvas.name.trim()
+                                ? canvas.name.trim()
+                                : `Canvas ${index + 1}`,
+                        placedBlocks: Array.isArray(canvas.placedBlocks) ? canvas.placedBlocks : [],
+                        edges: Array.isArray(canvas.edges) ? canvas.edges : [],
+                    }));
+                if (canvases.length > 0) {
+                    const activeCanvasId =
+                        typeof parsed.activeCanvasId === 'string' &&
+                            canvases.some((canvas) => canvas.id === parsed.activeCanvasId)
+                            ? parsed.activeCanvasId
+                            : canvases[0].id;
+                    return { version: 1, activeCanvasId, canvases };
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load multi-canvas state from localStorage:', error);
+    }
+
+    const legacy = loadCanvasState();
+    const first = createCanvasBoard(0, legacy);
+    return { version: 1, activeCanvasId: first.id, canvases: [first] };
+}
+
 function saveCanvasState(placedBlocks: any[], edges: any[]) {
     if (globalThis.window === undefined) {
         return;
@@ -99,6 +169,18 @@ function saveCanvasState(placedBlocks: any[], edges: any[]) {
         globalThis.window.localStorage.setItem(CANVAS_STATE_STORAGE_KEY, serialized);
     } catch (error) {
         console.warn('Failed to save canvas state to localStorage:', error);
+    }
+}
+
+function saveMultiCanvasState(state: MultiCanvasState) {
+    if (globalThis.window === undefined) {
+        return;
+    }
+
+    try {
+        globalThis.window.localStorage.setItem(CANVAS_MULTI_STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+        console.warn('Failed to save multi-canvas state to localStorage:', error);
     }
 }
 
@@ -210,7 +292,7 @@ function resolveCustomFunctionName(baseName: string, existing: Array<{ name: str
 
 function App() {
     const [initialPanel] = useState(() => readPanelFromQuery());
-    const initialCanvasState = loadCanvasState();
+    const initialMultiCanvasState = loadMultiCanvasState();
     const [showConsent, setShowConsent] = useState(() => {
         const localConsent = globalThis.localStorage.getItem(CONSENT_KEY);
         const sessionConsent = globalThis.sessionStorage.getItem(CONSENT_KEY);
@@ -218,8 +300,8 @@ function App() {
         return localConsent !== 'accepted' && sessionConsent !== 'accepted';
     });
 
-    const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks);
-    const [edges, setEdges] = useState<any[]>(initialCanvasState.edges);
+    const [canvases, setCanvases] = useState<CanvasBoardState[]>(initialMultiCanvasState.canvases);
+    const [activeCanvasId, setActiveCanvasId] = useState<string>(initialMultiCanvasState.activeCanvasId);
     const [sidePanelOpen, setSidePanelOpen] = useState(() => Boolean(initialPanel));
     const [theme, setTheme] = useState<string>(readStoredTheme);
     const [snapToGrid, setSnapToGrid] = useState<boolean>(readStoredSnapToGrid);
@@ -262,6 +344,49 @@ function App() {
     const [customFunctions, setCustomFunctions] =
         useState<Array<{ id: string; name: string; payload: string }>>(readStoredCustomFunctions);
     const [toast, setToast] = useState<null | { message: string; kind: 'success' | 'error' }>(null);
+    const [isCanvasRenameOpen, setIsCanvasRenameOpen] = useState(false);
+    const [canvasRenameDraft, setCanvasRenameDraft] = useState('');
+
+    const activeCanvasIndex = useMemo(() => {
+        const index = canvases.findIndex((canvas) => canvas.id === activeCanvasId);
+        return index >= 0 ? index : 0;
+    }, [activeCanvasId, canvases]);
+    const activeCanvas = useMemo(
+        () => canvases[activeCanvasIndex] ?? canvases[0] ?? null,
+        [activeCanvasIndex, canvases]
+    );
+    const placedBlocks = useMemo(() => activeCanvas?.placedBlocks ?? EMPTY_ITEMS, [activeCanvas]);
+    const edges = useMemo(() => activeCanvas?.edges ?? EMPTY_ITEMS, [activeCanvas]);
+
+    const setPlacedBlocks = useCallback((updater: StateUpdater<any[]>) => {
+        setCanvases((prev) =>
+            prev.map((canvas) => {
+                if (canvas.id !== activeCanvasId) {
+                    return canvas;
+                }
+                const nextPlacedBlocks =
+                    typeof updater === 'function'
+                        ? (updater as (current: any[]) => any[])(canvas.placedBlocks)
+                        : updater;
+                return { ...canvas, placedBlocks: nextPlacedBlocks };
+            })
+        );
+    }, [activeCanvasId]);
+
+    const setEdges = useCallback((updater: StateUpdater<any[]>) => {
+        setCanvases((prev) =>
+            prev.map((canvas) => {
+                if (canvas.id !== activeCanvasId) {
+                    return canvas;
+                }
+                const nextEdges =
+                    typeof updater === 'function'
+                        ? (updater as (current: any[]) => any[])(canvas.edges)
+                        : updater;
+                return { ...canvas, edges: nextEdges };
+            })
+        );
+    }, [activeCanvasId]);
 
     const dragStateRef = useRef<any>({
         pointerId: null,
@@ -381,8 +506,15 @@ function App() {
     }, [snapToGrid]);
 
     useEffect(() => {
+        if (!canvases.length) {
+            return;
+        }
+        const safeActiveCanvasId = canvases.some((canvas) => canvas.id === activeCanvasId)
+            ? activeCanvasId
+            : canvases[0].id;
+        saveMultiCanvasState({ version: 1, activeCanvasId: safeActiveCanvasId, canvases });
         saveCanvasState(placedBlocks, edges);
-    }, [placedBlocks, edges]);
+    }, [activeCanvasId, canvases, edges, placedBlocks]);
 
     useEffect(() => {
         if (!toast) {
@@ -461,7 +593,7 @@ function App() {
 
     const patchBlock = useCallback((id: string, patch: any) => {
         setPlacedBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-    }, []);
+    }, [setPlacedBlocks]);
 
     const movePlacedBlock = useCallback(
         (blockId: string, nextX: number, nextY: number) => {
@@ -503,7 +635,7 @@ function App() {
             });
             bumpLayout();
         },
-        [bumpLayout, snapToGrid]
+        [bumpLayout, setPlacedBlocks, snapToGrid]
     );
 
     const closeBlockContextMenu = useCallback(() => {
@@ -598,7 +730,7 @@ function App() {
             closeContextMenus();
             bumpLayout();
         },
-        [bumpLayout, closeContextMenus, selectedEdgeId]
+        [bumpLayout, closeContextMenus, selectedEdgeId, setEdges]
     );
 
     const deleteSelectedBlocks = useCallback(
@@ -626,7 +758,7 @@ function App() {
             closeContextMenus();
             bumpLayout();
         },
-        [bumpLayout, closeContextMenus]
+        [bumpLayout, closeContextMenus, setEdges, setPlacedBlocks]
     );
 
     const duplicateSelectedBlocks = useCallback(
@@ -671,7 +803,7 @@ function App() {
             closeContextMenus();
             bumpLayout();
         },
-        [bumpLayout, closeContextMenus]
+        [bumpLayout, closeContextMenus, setEdges, setPlacedBlocks]
     );
 
     const reorderSelectedBlocks = useCallback(
@@ -717,7 +849,7 @@ function App() {
             closeContextMenus();
             bumpLayout();
         },
-        [bumpLayout, closeContextMenus]
+        [bumpLayout, closeContextMenus, setPlacedBlocks]
     );
 
     const scrollToBlocks = useCallback((blocks: any[]) => {
@@ -904,7 +1036,7 @@ function App() {
                 return false;
             }
         },
-        [bumpLayout, canAddBlocks, closeContextMenus, snapToGrid, viewport]
+        [bumpLayout, canAddBlocks, closeContextMenus, setEdges, setPlacedBlocks, snapToGrid, viewport]
     );
 
     const packageSelectionAsCustomFunction = useCallback(
@@ -1035,7 +1167,7 @@ function App() {
             bumpLayout();
             return true;
         },
-        [bumpLayout, canAddBlocks, customFunctions, snapToGrid]
+        [bumpLayout, canAddBlocks, customFunctions, setEdges, setPlacedBlocks, snapToGrid]
     );
 
     useEffect(() => {
@@ -1372,7 +1504,7 @@ function App() {
             globalThis.window.removeEventListener('pointerup', finish);
             globalThis.window.removeEventListener('pointercancel', finish);
         };
-    }, [wireDrag]);
+    }, [setEdges, wireDrag]);
 
     useEffect(() => {
         const updateViewport = () => {
@@ -1716,6 +1848,7 @@ function App() {
     const handleResetLocalStorage = useCallback(() => {
         try {
             globalThis.localStorage.clear();
+            globalThis.window.location.reload();
         } catch {
             // Ignore storage failures.
         }
@@ -1760,7 +1893,7 @@ function App() {
                 const dy = targetCy - graphCy;
                 parsed = {
                     ...parsed,
-                    placedBlocks: parsed.placedBlocks.map((block: { x: number; y: number }) => {
+                    placedBlocks: parsed.placedBlocks.map((block: any) => {
                         const nx = block.x + dx;
                         const ny = block.y + dy;
                         return {
@@ -1778,7 +1911,17 @@ function App() {
                 scrollToBlocks(parsed.placedBlocks);
             }
         },
-        [bumpLayout, scrollToBlocks, snapToGrid, viewport.height, viewport.left, viewport.top, viewport.width]
+        [
+            bumpLayout,
+            scrollToBlocks,
+            setEdges,
+            setPlacedBlocks,
+            snapToGrid,
+            viewport.height,
+            viewport.left,
+            viewport.top,
+            viewport.width,
+        ]
     );
 
     const handleClearFlowchart = useCallback(() => {
@@ -1796,10 +1939,167 @@ function App() {
         );
         const top = Math.min(Math.max(0, (CANVAS_SIZE * z - window.innerHeight) / 2), maxScrollTop);
         window.scrollTo({ left, top });
-    }, [bumpLayout]);
+    }, [bumpLayout, setEdges, setPlacedBlocks]);
+
+    const handleSelectCanvasByIndex = useCallback(
+        (index: number) => {
+            if (index < 0 || index >= canvases.length) {
+                return;
+            }
+            closeContextMenus();
+            setSelectedBlockIds([]);
+            setSelectedEdgeId(null);
+            setActiveCanvasId(canvases[index].id);
+        },
+        [canvases, closeContextMenus]
+    );
+
+    const handleCreateCanvas = useCallback(() => {
+        setCanvases((prev) => {
+            if (prev.length >= MAX_CANVASES) {
+                showToast(`You can only have up to ${MAX_CANVASES} canvases.`, 'error');
+                return prev;
+            }
+            const created = createCanvasBoard(prev.length);
+            closeContextMenus();
+            setSelectedBlockIds([]);
+            setSelectedEdgeId(null);
+            setActiveCanvasId(created.id);
+            return [...prev, created];
+        });
+    }, [closeContextMenus, showToast]);
+
+    const handleRenameActiveCanvas = useCallback((name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) {
+            return;
+        }
+        setCanvases((prev) =>
+            prev.map((canvas) => (canvas.id === activeCanvasId ? { ...canvas, name: trimmed } : canvas))
+        );
+    }, [activeCanvasId]);
+
+    const openCanvasRename = useCallback(() => {
+        if (!activeCanvas) {
+            return;
+        }
+        setCanvasRenameDraft(activeCanvas.name);
+        setIsCanvasRenameOpen(true);
+    }, [activeCanvas]);
+
+    const closeCanvasRename = useCallback(() => {
+        setIsCanvasRenameOpen(false);
+        setCanvasRenameDraft('');
+    }, []);
+
+    const submitCanvasRename = useCallback(() => {
+        handleRenameActiveCanvas(canvasRenameDraft);
+        closeCanvasRename();
+    }, [canvasRenameDraft, closeCanvasRename, handleRenameActiveCanvas]);
+
+    useEffect(() => {
+        if (!isCanvasRenameOpen) {
+            return;
+        }
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeCanvasRename();
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitCanvasRename();
+            }
+        };
+
+        globalThis.window.addEventListener('keydown', onKeyDown);
+        return () => globalThis.window.removeEventListener('keydown', onKeyDown);
+    }, [closeCanvasRename, isCanvasRenameOpen, submitCanvasRename]);
 
     return (
         <>
+            <section className="canvas-board-menu" aria-label="Canvas boards">
+                <div className="canvas-board-menu__row">
+                    <button
+                        type="button"
+                        className="canvas-board-menu__add"
+                        onClick={handleCreateCanvas}
+                        disabled={canvases.length >= MAX_CANVASES}
+                        aria-label="Add canvas"
+                        title={canvases.length >= MAX_CANVASES ? `Max ${MAX_CANVASES} canvases reached` : 'Add canvas'}
+                    >
+                        +
+                    </button>
+                    <Carousel
+                        className="canvas-board-menu__carousel"
+                        activeIndex={activeCanvasIndex}
+                        onSelect={(selectedIndex) => handleSelectCanvasByIndex(selectedIndex)}
+                        interval={null}
+                        indicators={false}
+                        slide={false}
+                        touch
+                        wrap={canvases.length > 1}
+                        keyboard
+                    >
+                        {canvases.map((canvas) => (
+                            <Carousel.Item key={canvas.id}>
+                                <button
+                                    type="button"
+                                    className="canvas-board-menu__item is-active"
+                                    onClick={() => handleSelectCanvasByIndex(canvases.findIndex((item) => item.id === canvas.id))}
+                                    onDoubleClick={canvas.id === activeCanvasId ? openCanvasRename : undefined}
+                                    title={canvas.name}
+                                >
+                                    {canvas.name}
+                                </button>
+                            </Carousel.Item>
+                        ))}
+                    </Carousel>
+                    <div className="canvas-board-menu__count" aria-live="polite">
+                        {canvases.length}/{MAX_CANVASES}
+                    </div>
+                </div>
+            </section>
+            {isCanvasRenameOpen ? (
+                <div className="canvas-rename-modal" role="dialog" aria-modal="true" aria-label="Rename canvas">
+                    <button
+                        type="button"
+                        className="canvas-rename-modal__backdrop"
+                        aria-label="Close rename dialog"
+                        onClick={closeCanvasRename}
+                    />
+                    <form
+                        className="canvas-rename-modal__card"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            submitCanvasRename();
+                        }}
+                    >
+                        <h2 className="canvas-rename-modal__title">Rename canvas</h2>
+                        <input
+                            className="canvas-rename-modal__input"
+                            type="text"
+                            value={canvasRenameDraft}
+                            onChange={(event) => setCanvasRenameDraft(event.target.value)}
+                            maxLength={120}
+                            autoFocus
+                        />
+                        <div className="canvas-rename-modal__actions">
+                            <button
+                                type="button"
+                                className="canvas-rename-modal__button"
+                                onClick={closeCanvasRename}
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit" className="canvas-rename-modal__button is-primary">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            ) : null}
             <section className="cursor-mode-menu" aria-label="Cursor mode">
                 <p className="cursor-mode-menu__label">Cursor</p>
                 <div className="cursor-mode-menu__buttons" role="tablist" aria-label="Cursor modes">
@@ -2030,6 +2330,7 @@ function App() {
                     onExportFlowchart={handleExportFlowchart}
                     onImportFlowchart={handleImportFlowchart}
                     onClearFlowchart={handleClearFlowchart}
+                    activeCanvasId={activeCanvasId}
                     snapToGrid={snapToGrid}
                     onSnapToGridChange={setSnapToGrid}
                     onResetLocalStorage={handleResetLocalStorage}
