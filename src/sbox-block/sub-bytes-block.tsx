@@ -1,26 +1,26 @@
-import { useId } from 'react'
-import { serializeBytesToFormat } from '../converter-block/format-bytes'
-import { portRegistryKey } from '../graph/edge-types'
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import PortHandle from '../port-handle'
+import { useId } from 'react';
+import { serializeBytesToFormat } from '../converter-block/format-bytes';
+import { portRegistryKey } from '../graph/edge-types';
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
+import PortHandle from '../port-handle';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    evaluation?: any
+    draggableToCanvas?: boolean;
+    block?: any;
+    evaluation?: any;
 }
 
 function SubBytesBlock({ draggableToCanvas = false, block, evaluation }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-subbytes-title`
-    const isCanvas = Boolean(block)
+    const id = useId();
+    const titleId = `${id}-subbytes-title`;
+    const isCanvas = Boolean(block);
 
-    const inKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
-    const outKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
-    const inBytes = isCanvas ? evaluation?.portBytes?.get(inKey) : undefined
-    const outBytes = isCanvas ? evaluation?.portBytes?.get(outKey) : undefined
-    const hasWiredInput = inBytes !== undefined
-    const resultText = outBytes ? serializeBytesToFormat('hex', outBytes) : ''
+    const inKey = isCanvas ? portRegistryKey(block.id, 'in') : '';
+    const outKey = isCanvas ? portRegistryKey(block.id, 'out') : '';
+    const inBytes = isCanvas ? evaluation?.portBytes?.get(inKey) : undefined;
+    const outBytes = isCanvas ? evaluation?.portBytes?.get(outKey) : undefined;
+    const hasWiredInput = inBytes !== undefined;
+    const resultText = outBytes ? serializeBytesToFormat('hex', outBytes) : '';
 
     const sectionClass = [
         'input-block',
@@ -28,17 +28,19 @@ function SubBytesBlock({ draggableToCanvas = false, block, evaluation }: Readonl
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
             className={sectionClass}
             aria-labelledby={titleId}
             draggable={draggableToCanvas}
-            onDragStart={draggableToCanvas ? (event) => attachPaletteDragData(event, 'subBytes') : undefined}
+            onDragStart={
+                draggableToCanvas ? (event) => attachPaletteDragData(event, 'subBytes') : undefined
+            }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -51,7 +53,9 @@ function SubBytesBlock({ draggableToCanvas = false, block, evaluation }: Readonl
             <h3 className="input-block-title" id={titleId}>
                 SubBytes
             </h3>
-            <p className="input-block-hint">Applies AES S-box substitution to each byte of the wired input.</p>
+            <p className="input-block-hint">
+                Applies AES S-box substitution to each byte of the wired input.
+            </p>
             {isCanvas ? (
                 <>
                     <label className="converter-block-label" htmlFor={`${id}-result`}>
@@ -67,11 +71,13 @@ function SubBytesBlock({ draggableToCanvas = false, block, evaluation }: Readonl
                         aria-label="SubBytes result"
                     />
                     {hasWiredInput ? null : (
-                        <p className="input-block-hint">No wired input yet. Connect a source block to in.</p>
+                        <p className="input-block-hint">
+                            No wired input yet. Connect a source block to in.
+                        </p>
                     )}
                 </>
             ) : null}
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -82,7 +88,7 @@ function SubBytesBlock({ draggableToCanvas = false, block, evaluation }: Readonl
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default SubBytesBlock
+export default SubBytesBlock;

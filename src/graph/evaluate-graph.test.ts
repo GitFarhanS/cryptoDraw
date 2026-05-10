@@ -231,14 +231,14 @@ describe('evaluateGraph data transfer', () => {
         const blocks = [
             { id: 'src', type: 'hex', x: 0, y: 0, text: '53' },
             { id: 'sub', type: 'subBytes', x: 0, y: 0 },
-        ]
-        const edges = [edge('e1', 'src', 'out', 'sub', 'in')]
-        const result = evaluateGraph(blocks as any, edges as any)
-        const bytes = result.portBytes.get('sub\0out')
-        expect(bytes).toBeDefined()
-        expect(serializeBytesToFormat('hex', bytes!)).toBe('ed')
-        expect(result.portFormats.get('sub\0out')).toBe('hex')
-    })
+        ];
+        const edges = [edge('e1', 'src', 'out', 'sub', 'in')];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('sub\0out');
+        expect(bytes).toBeDefined();
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('ed');
+        expect(result.portFormats.get('sub\0out')).toBe('hex');
+    });
 
     it('ChaCha20-IETF emits RFC 8439 §2.3.2 keystream prefix with counting key and test nonce', () => {
         const keyHex =

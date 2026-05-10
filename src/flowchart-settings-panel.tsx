@@ -1,10 +1,11 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { CUSTOM_FUNCTION_DRAG_MIME } from './input-blocks/drag-constants';
 
 interface Props {
     onExportFlowchart: () => string;
     onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
+    activeCanvasId: string;
     snapToGrid: boolean;
     onSnapToGridChange: (value: boolean) => void;
     onResetLocalStorage: () => void;
@@ -20,6 +21,7 @@ function FlowchartIoPanel({
     onExportFlowchart,
     onImportFlowchart,
     onClearFlowchart,
+    activeCanvasId,
     snapToGrid,
     onSnapToGridChange,
     onResetLocalStorage,
@@ -38,6 +40,11 @@ function FlowchartIoPanel({
     const [copyConfirmed, setCopyConfirmed] = useState(false);
     const [customFunctionName, setCustomFunctionName] = useState('');
     const [customFunctionShareText, setCustomFunctionShareText] = useState('');
+
+    useEffect(() => {
+        setDialog(null);
+        setCopyConfirmed(false);
+    }, [activeCanvasId]);
 
     const exportFlowchart = () => {
         try {
@@ -144,7 +151,7 @@ function FlowchartIoPanel({
                         onToast('Local storage cleared.', 'success');
                     }}
                 >
-                    Reset (clear localStorage)
+                    Reset (clear Cache)
                 </button>
             </section>
 
@@ -238,9 +245,9 @@ function FlowchartIoPanel({
                 className="flowchart-io-card"
                 aria-label="Flowchart import and export settings"
             >
-                <h3 className="flowchart-io-card-title">Flowchart data</h3>
+                <h3 className="flowchart-io-card-title">Canvas data</h3>
                 <p className="flowchart-io-text">
-                    Export the current flowchart or import a new one.
+                    Export the current canvas or import a new one.
                 </p>
                 <div className="flowchart-io-actions">
                     <button type="button" className="flowchart-io-button" onClick={exportFlowchart}>
@@ -261,7 +268,7 @@ function FlowchartIoPanel({
                             onToast('Flowchart cleared.', 'success');
                         }}
                     >
-                        Clear flowchart
+                        Clear Canvas
                     </button>
                 </div>
             </section>
