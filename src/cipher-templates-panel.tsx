@@ -1,142 +1,24 @@
 import { useState } from 'react'
+import { CIPHER_TEMPLATE_META, buildCipherTemplateGraph, type CipherTemplateId } from './cipher-template-builders'
 import { serializeFlowchartToBase64 } from './graph/flowchart-io'
-import type { GraphEdge, PlacedBlockRecord } from './types/graph'
 
 interface Props {
     onImportFlowchart: (base64: string) => void
-}
-
-interface CipherTemplate {
-    id: string
-    title: string
-    description: string
-    sampleText: string
-    sampleKey: string
-}
-
-const CIPHER_TEMPLATES: CipherTemplate[] = [
-    {
-        id: 'rsa',
-        title: 'RSA',
-        description: 'Starter scaffold for an asymmetric cipher walkthrough with a message and key.',
-        sampleText: 'RSA demo',
-        sampleKey: 'a1b2c3d4',
-    },
-    {
-        id: 'chacha20',
-        title: 'ChaCha20',
-        description: 'Stream-cipher sketch with plaintext and a keystream seed placeholder.',
-        sampleText: 'ChaCha20 demo',
-        sampleKey: '0011223344556677',
-    },
-    {
-        id: 'des',
-        title: 'DES',
-        description: 'Block-cipher starter with a sample plaintext and 56-bit key placeholder.',
-        sampleText: 'DES demo',
-        sampleKey: '133457799bbcdff1',
-    },
-    {
-        id: '3des',
-        title: '3DES',
-        description: 'Triple-DES scaffold with a sample message and multi-key placeholder.',
-        sampleText: '3DES demo',
-        sampleKey: '0123456789abcdeffedcba9876543210',
-    },
-    {
-        id: 'aes',
-        title: 'AES',
-        description: 'Block-cipher sketch with sample plaintext and 128-bit key placeholder.',
-        sampleText: 'AES demo',
-        sampleKey: '2b7e151628aed2a6abf7158809cf4f3c',
-    },
-]
-
-const TEMPLATE_LAYOUT = {
-    message: { x: 120, y: 140 },
-    key: { x: 120, y: 300 },
-    op: { x: 380, y: 220 },
-    output: { x: 640, y: 220 },
-}
-
-function createTemplateId() {
-    if (globalThis.crypto?.randomUUID) {
-        return globalThis.crypto.randomUUID()
-    }
-    return `template-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function buildTemplateFlowchart(template: CipherTemplate) {
-    const messageId = createTemplateId()
-    const keyId = createTemplateId()
-    const opId = createTemplateId()
-    const outputId = createTemplateId()
-
-    const placedBlocks: PlacedBlockRecord[] = [
-        {
-            id: messageId,
-            type: 'ascii',
-            x: TEMPLATE_LAYOUT.message.x,
-            y: TEMPLATE_LAYOUT.message.y,
-            text: template.sampleText,
-        },
-        {
-            id: keyId,
-            type: 'hex',
-            x: TEMPLATE_LAYOUT.key.x,
-            y: TEMPLATE_LAYOUT.key.y,
-            text: template.sampleKey,
-        },
-        {
-            id: opId,
-            type: 'opXor',
-            x: TEMPLATE_LAYOUT.op.x,
-            y: TEMPLATE_LAYOUT.op.y,
-            opDisplayMode: 'auto',
-            opDisplayFormat: 'hex',
-            opShiftMode: 'logical',
-        },
-        {
-            id: outputId,
-            type: 'output',
-            x: TEMPLATE_LAYOUT.output.x,
-            y: TEMPLATE_LAYOUT.output.y,
-        },
-    ]
-
-    const edges: GraphEdge[] = [
-        {
-            id: createTemplateId(),
-            from: { blockId: messageId, portKey: 'out' },
-            to: { blockId: opId, portKey: 'in:a' },
-        },
-        {
-            id: createTemplateId(),
-            from: { blockId: keyId, portKey: 'out' },
-            to: { blockId: opId, portKey: 'in:b' },
-        },
-        {
-            id: createTemplateId(),
-            from: { blockId: opId, portKey: 'out' },
-            to: { blockId: outputId, portKey: 'in' },
-        },
-    ]
-
-    return serializeFlowchartToBase64(placedBlocks, edges)
 }
 
 function CipherTemplatesPanel({ onImportFlowchart }: Readonly<Props>) {
     const [status, setStatus] = useState('')
     const [statusKind, setStatusKind] = useState<'neutral' | 'success' | 'error'>('neutral')
 
-    const loadTemplate = (template: CipherTemplate) => {
+    const loadTemplate = (templateId: CipherTemplateId, title: string) => {
         try {
-            const base64 = buildTemplateFlowchart(template)
+            const { placedBlocks, edges } = buildCipherTemplateGraph(templateId)
+            const base64 = serializeFlowchartToBase64(placedBlocks, edges)
             onImportFlowchart(base64)
-            setStatus(`${template.title} template loaded.`)
+            setStatus(`${title} template loaded.`)
             setStatusKind('success')
         } catch (error) {
-            setStatus(error instanceof Error ? error.message : `Could not load ${template.title} template.`)
+            setStatus(error instanceof Error ? error.message : `Could not load ${title} template.`)
             setStatusKind('error')
         }
     }
@@ -144,11 +26,11 @@ function CipherTemplatesPanel({ onImportFlowchart }: Readonly<Props>) {
     return (
         <div className="flowchart-io">
             <p className="flowchart-io-text">
-                Load a starter cipher flowchart and swap in real steps as you explore each algorithm. Loading a
-                template replaces the current canvas.
+                Load cipher flowcharts built from this app’s blocks (ChaCha20-IETF from Stream, Permute for DES IP/FP,
+                SubBytes after AES AddRoundKey). Loading replaces the current canvas.
             </p>
             <div className="input-blocks">
-                {CIPHER_TEMPLATES.map((template) => (
+                {CIPHER_TEMPLATE_META.map((template) => (
                     <section key={template.id} className="input-block">
                         <h3 className="input-block-title">{template.title}</h3>
                         <p className="input-block-hint">{template.description}</p>
@@ -156,7 +38,7 @@ function CipherTemplatesPanel({ onImportFlowchart }: Readonly<Props>) {
                             <button
                                 type="button"
                                 className="flowchart-io-button"
-                                onClick={() => loadTemplate(template)}
+                                onClick={() => loadTemplate(template.id, template.title)}
                             >
                                 Load template
                             </button>

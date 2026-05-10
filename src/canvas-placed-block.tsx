@@ -13,6 +13,13 @@ import OperationBlock from './operations-block/operation-block'
 import { OPERATION_DEFINITIONS } from './operations-block/operation-definitions'
 import OutputBlock from './output-block/output-block'
 import SubBytesBlock from './sbox-block/sub-bytes-block'
+import {
+    ChaChaIetfColumnRoundBlock,
+    ChaChaIetfDiagonalRoundBlock,
+    ChaChaIetfFinalizeBlock,
+    ChaChaIetfInitBlock,
+    ChaChaIetfQuarterRoundBlock,
+} from './stream-block/chacha-ietf-blocks'
 
 const OPERATION_BLOCKS_BY_TYPE = Object.fromEntries(
     OPERATION_DEFINITIONS.map(({ blockType, title, hint }) => [
@@ -33,6 +40,11 @@ const BLOCK_BY_TYPE: Record<string, any> = {
     formatConvert: FormatConvertBlock,
     permuteReorder: PermuteReorderBlock,
     subBytes: SubBytesBlock,
+    chachaIetfInit: ChaChaIetfInitBlock,
+    chachaIetfQuarterRound: ChaChaIetfQuarterRoundBlock,
+    chachaIetfColumnRound: ChaChaIetfColumnRoundBlock,
+    chachaIetfDiagonalRound: ChaChaIetfDiagonalRoundBlock,
+    chachaIetfFinalize: ChaChaIetfFinalizeBlock,
     output: OutputBlock,
     ...OPERATION_BLOCKS_BY_TYPE,
 }

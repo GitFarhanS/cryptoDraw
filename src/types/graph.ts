@@ -30,6 +30,20 @@ export interface PlacedBlockRecord {
     opDisplayMode?: 'auto' | 'manual'
     opDisplayFormat?: DataFormat
     opShiftMode?: 'logical' | 'circular'
+    /** ChaCha20-IETF (RFC 8439): 32-bit block counter (0 = Poly1305 key block; 1 = first ciphertext block). */
+    chachaBlockCounter?: number
+    /** ChaCha20-IETF: emit first N keystream bytes after one block (1–64). */
+    chachaOutputByteLength?: number
+    /** Which quarter-round indices to apply (column or diagonal slot). */
+    chachaQuarterPreset?:
+        | 'col0'
+        | 'col1'
+        | 'col2'
+        | 'col3'
+        | 'diag0'
+        | 'diag1'
+        | 'diag2'
+        | 'diag3'
 }
 
 export interface WireDragState {

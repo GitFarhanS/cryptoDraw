@@ -2,9 +2,18 @@ import {
     INPUT_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
     SBOX_BLOCK_TYPES,
+    STREAM_BLOCK_TYPES,
 } from '../input-blocks/drag-constants'
 import { parseBytesFromFormat, serializeBytesToFormat } from '../converter-block/format-bytes'
 import { applySubBytes } from '../sbox-block/aes-sbox'
+import {
+    applyColumnRound,
+    applyDiagonalRound,
+    applyQuarterRoundPreset,
+    buildChachaIetfInitialState,
+    finalizeChachaKeystream,
+    isChaChaQuarterPreset,
+} from '../stream-block/chacha20-ietf'
 import {
     inputPortKeysForBlock,
     isEdgeValidForBlocks,
@@ -435,6 +444,146 @@ export function evaluateGraph(placedBlocks: PlacedBlockRecord[], edges: GraphEdg
 
         if (type === 'output') {
             continue
+        }
+
+        if (STREAM_BLOCK_TYPES.includes(type as (typeof STREAM_BLOCK_TYPES)[number])) {
+            if (type === 'chachaIetfInit') {
+                const keyBytes = getPort(blockId, 'in:key')
+                const nonceBytes = getPort(blockId, 'in:nonce')
+                const ctr = (block.chachaBlockCounter ?? 1) >>> 0
+
+                if (
+                    keyBytes === EMPTY
+                    || keyBytes.length !== 32
+                    || nonceBytes === EMPTY
+                    || nonceBytes.length !== 12
+                ) {
+                    if (keyBytes !== EMPTY && keyBytes.length !== 32) {
+                        note(`ChaCha Init ${blockId}: key must be exactly 32 bytes (got ${keyBytes.length}).`)
+                    }
+                    if (nonceBytes !== EMPTY && nonceBytes.length !== 12) {
+                        note(`ChaCha Init ${blockId}: nonce must be exactly 12 bytes (got ${nonceBytes.length}).`)
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                    continue
+                }
+
+                try {
+                    const outBytes = buildChachaIetfInitialState(keyBytes, nonceBytes, ctr)
+                    setPort(blockId, 'out', outBytes, {
+                        format: 'hex',
+                        bitLength: 512,
+                    })
+                } catch (err) {
+                    note(`ChaCha Init ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`)
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                }
+                continue
+            }
+
+            if (type === 'chachaIetfQuarterRound') {
+                const state64 = getPort(blockId, 'in')
+                const rawPreset = block.chachaQuarterPreset ?? 'col0'
+                const preset = isChaChaQuarterPreset(rawPreset) ? rawPreset : 'col0'
+                if (state64 === EMPTY || state64.length !== 64) {
+                    if (state64 !== EMPTY && state64.length !== 64) {
+                        note(`ChaCha QuarterRound ${blockId}: state must be 64 bytes (got ${state64.length}).`)
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                    continue
+                }
+                try {
+                    const outBytes = applyQuarterRoundPreset(state64, preset)
+                    setPort(blockId, 'out', outBytes, {
+                        format: 'hex',
+                        bitLength: 512,
+                    })
+                } catch (err) {
+                    note(`ChaCha QuarterRound ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`)
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                }
+                continue
+            }
+
+            if (type === 'chachaIetfColumnRound') {
+                const state64 = getPort(blockId, 'in')
+                if (state64 === EMPTY || state64.length !== 64) {
+                    if (state64 !== EMPTY && state64.length !== 64) {
+                        note(`ChaCha ColumnRound ${blockId}: state must be 64 bytes (got ${state64.length}).`)
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                    continue
+                }
+                try {
+                    const outBytes = applyColumnRound(state64)
+                    setPort(blockId, 'out', outBytes, {
+                        format: 'hex',
+                        bitLength: 512,
+                    })
+                } catch (err) {
+                    note(`ChaCha ColumnRound ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`)
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                }
+                continue
+            }
+
+            if (type === 'chachaIetfDiagonalRound') {
+                const state64 = getPort(blockId, 'in')
+                if (state64 === EMPTY || state64.length !== 64) {
+                    if (state64 !== EMPTY && state64.length !== 64) {
+                        note(`ChaCha DiagonalRound ${blockId}: state must be 64 bytes (got ${state64.length}).`)
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                    continue
+                }
+                try {
+                    const outBytes = applyDiagonalRound(state64)
+                    setPort(blockId, 'out', outBytes, {
+                        format: 'hex',
+                        bitLength: 512,
+                    })
+                } catch (err) {
+                    note(`ChaCha DiagonalRound ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`)
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                }
+                continue
+            }
+
+            if (type === 'chachaIetfFinalize') {
+                const workBytes = getPort(blockId, 'in:state')
+                const initialBytes = getPort(blockId, 'in:initial')
+                const prefixLenRaw = block.chachaOutputByteLength ?? 64
+                const prefixLen = Math.min(64, Math.max(1, Math.floor(Number(prefixLenRaw)) || 64))
+
+                if (
+                    workBytes === EMPTY
+                    || workBytes.length !== 64
+                    || initialBytes === EMPTY
+                    || initialBytes.length !== 64
+                ) {
+                    if (workBytes !== EMPTY && workBytes.length !== 64) {
+                        note(`ChaCha Finalize ${blockId}: state must be 64 bytes (got ${workBytes.length}).`)
+                    }
+                    if (initialBytes !== EMPTY && initialBytes.length !== 64) {
+                        note(`ChaCha Finalize ${blockId}: initial must be 64 bytes (got ${initialBytes.length}).`)
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                    continue
+                }
+
+                try {
+                    const blockKs = finalizeChachaKeystream(workBytes, initialBytes)
+                    const outBytes = blockKs.slice(0, prefixLen)
+                    setPort(blockId, 'out', outBytes, {
+                        format: 'hex',
+                        bitLength: outBytes.length * 8,
+                    })
+                } catch (err) {
+                    note(`ChaCha Finalize ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`)
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 })
+                }
+                continue
+            }
         }
 
         if (SBOX_BLOCK_TYPES.includes(type as (typeof SBOX_BLOCK_TYPES)[number])) {

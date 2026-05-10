@@ -42,6 +42,24 @@ export function createPlacedBlock(type: string, x: number, y: number): PlacedBlo
             permuteOrder: '0, 1, 2, 3',
         }
     }
+    if (type === 'chachaIetfInit') {
+        return {
+            ...base,
+            chachaBlockCounter: 1,
+        }
+    }
+    if (type === 'chachaIetfQuarterRound') {
+        return {
+            ...base,
+            chachaQuarterPreset: 'col0',
+        }
+    }
+    if (type === 'chachaIetfFinalize') {
+        return {
+            ...base,
+            chachaOutputByteLength: 64,
+        }
+    }
     if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {
         return {
             ...base,
