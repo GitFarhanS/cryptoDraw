@@ -13,7 +13,7 @@ It is a learning and tinkering tool, not a production cryptography library: usef
 ## Features
 
 - **Pannable, zoomable canvas** with a live mini-map for navigation.
-- **Drag-and-drop palette** organized into expandable side-panel sections (Input, Converter, Operations, Flowchart, Output).
+- **Drag-and-drop palette** organized into expandable side-panel sections (Input, Converter, Operations, Output, Flowchart, Templates).
 - **Bezier wires** between typed input/output ports, with cycle detection to prevent invalid graphs.
 - **Live evaluation**: every edit re-runs the graph and updates downstream blocks immediately.
 - **Import/export** the entire flowchart as a Base64 string — paste it back later or share it with someone else.
@@ -55,14 +55,18 @@ Renders the final value in a chosen format so you can see what your pipeline pro
 
 Export the entire graph (placed blocks + edges) to a Base64 string, or paste a string back in to restore it. Useful for saving work or sharing a flowchart in chat.
 
+### Cipher templates
+
+Load a starter scaffold for common algorithms (RSA, ChaCha20, DES, 3DES, AES) and swap in the blocks you need while experimenting.
+
 ## How to use it
 
 1. Open the live site or run it locally.
-2. Click the side-panel toggle and pick a category (Input, Converter, Operations, Output).
+2. Click the side-panel toggle and pick a category (Input, Converter, Operations, Output, Flowchart, Templates).
 3. Drag a block onto the canvas.
 4. Drag from a block's output port to another block's input port to wire them together.
 5. Type into input blocks — downstream blocks update immediately.
-6. Use the Flowchart panel to export your graph as Base64 or import an existing one.
+6. Use the Flowchart panel to export your graph as Base64 or import an existing one. Use Templates to load a starter cipher flowchart.
 
 Pan the canvas by dragging empty space; zoom with the mouse wheel; use the mini-map in the corner to jump around quickly.
 
@@ -119,6 +123,7 @@ src/
   converter-block/          Split / join / format-convert blocks
   operations-block/         XOR, AND, shifts, MOD, POW, ADD, MUL definitions and UI
   output-block/             Final-value display block
+  cipher-templates-panel.tsx Starter cipher flowchart templates
   flowchart-io-panel.jsx    Base64 import/export dialog
 
   graph/

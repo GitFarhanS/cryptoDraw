@@ -47,6 +47,7 @@ const MIN_MARQUEE_SIZE = 4;
 const PASTE_STEP = 48;
 const PASTE_WRAP = 6;
 const SNAP_GRID_SIZE = 16;
+const VIEWPORT_IMPORT_PADDING = 24;
 const MAX_BLOCKS = 2048;
 type PasteAnchor = { x: number; y: number };
 const THEMES = [
@@ -180,6 +181,20 @@ function snapValue(value: number) {
     return Math.round(value / SNAP_GRID_SIZE) * SNAP_GRID_SIZE;
 }
 
+function readPanelFromQuery() {
+    if (globalThis.window === undefined) {
+        return null;
+    }
+
+    try {
+        const params = new URLSearchParams(globalThis.window.location.search);
+        const panel = params.get('panel');
+        return panel && panel.trim() ? panel : null;
+    } catch {
+        return null;
+    }
+}
+
 function resolveCustomFunctionName(baseName: string, existing: Array<{ name: string }>) {
     const trimmed = baseName.trim() || 'Custom function';
     const existingNames = new Set(existing.map((item) => item.name));
@@ -194,6 +209,7 @@ function resolveCustomFunctionName(baseName: string, existing: Array<{ name: str
 }
 
 function App() {
+    const [initialPanel] = useState(() => readPanelFromQuery());
     const initialCanvasState = loadCanvasState();
     const [showConsent, setShowConsent] = useState(() => {
         const localConsent = globalThis.localStorage.getItem(CONSENT_KEY);
@@ -204,7 +220,7 @@ function App() {
 
     const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks);
     const [edges, setEdges] = useState<any[]>(initialCanvasState.edges);
-    const [sidePanelOpen, setSidePanelOpen] = useState(false);
+    const [sidePanelOpen, setSidePanelOpen] = useState(() => Boolean(initialPanel));
     const [theme, setTheme] = useState<string>(readStoredTheme);
     const [snapToGrid, setSnapToGrid] = useState<boolean>(readStoredSnapToGrid);
     const [zoom, setZoom] = useState<number>(1);
@@ -1361,10 +1377,14 @@ function App() {
     useEffect(() => {
         const updateViewport = () => {
             const z = zoomRef.current;
+            const togglePx = 32;
+            const drawerPx = sidePanelOpen ? Math.min(288, window.innerWidth * 0.92) : 0;
+            const rightChromePx = togglePx + drawerPx;
+            const usableInnerWidthPx = Math.max(0, window.innerWidth - rightChromePx);
             setViewport({
                 left: window.scrollX / z,
                 top: window.scrollY / z,
-                width: window.innerWidth / z,
+                width: usableInnerWidthPx / z,
                 height: window.innerHeight / z,
             });
             bumpLayout();
@@ -1378,7 +1398,7 @@ function App() {
             window.removeEventListener('scroll', updateViewport);
             window.removeEventListener('resize', updateViewport);
         };
-    }, [bumpLayout, zoom]);
+    }, [bumpLayout, zoom, sidePanelOpen]);
 
     // Reset paste offset counter when the viewport changes so pastes from a
     // new view start at zero offset.
@@ -1717,14 +1737,48 @@ function App() {
     );
 
     const handleImportFlowchart = useCallback(
-        (base64Text: string) => {
-            const parsed = parseFlowchartFromBase64(base64Text);
+        (base64Text: string, options?: { anchorToViewport?: boolean }) => {
+            let parsed = parseFlowchartFromBase64(base64Text);
+            if (
+                options?.anchorToViewport &&
+                parsed.placedBlocks.length > 0 &&
+                viewport.width > 0 &&
+                viewport.height > 0
+            ) {
+                const minX = Math.min(...parsed.placedBlocks.map((b: { x: number }) => b.x));
+                const minY = Math.min(...parsed.placedBlocks.map((b: { y: number }) => b.y));
+                const maxX = Math.max(...parsed.placedBlocks.map((b: { x: number }) => b.x));
+                const maxY = Math.max(...parsed.placedBlocks.map((b: { y: number }) => b.y));
+                const graphCx = (minX + maxX) / 2;
+                const graphCy = (minY + maxY) / 2;
+                const pad = VIEWPORT_IMPORT_PADDING;
+                const usableW = Math.max(0, viewport.width - 2 * pad);
+                const usableH = Math.max(0, viewport.height - 2 * pad);
+                const targetCx = viewport.left + pad + usableW / 2;
+                const targetCy = viewport.top + pad + usableH / 2;
+                const dx = targetCx - graphCx;
+                const dy = targetCy - graphCy;
+                parsed = {
+                    ...parsed,
+                    placedBlocks: parsed.placedBlocks.map((block: { x: number; y: number }) => {
+                        const nx = block.x + dx;
+                        const ny = block.y + dy;
+                        return {
+                            ...block,
+                            x: snapToGrid ? snapValue(nx) : nx,
+                            y: snapToGrid ? snapValue(ny) : ny,
+                        };
+                    }),
+                };
+            }
             setPlacedBlocks(parsed.placedBlocks);
             setEdges(parsed.edges);
             bumpLayout();
-            scrollToBlocks(parsed.placedBlocks);
+            if (!options?.anchorToViewport) {
+                scrollToBlocks(parsed.placedBlocks);
+            }
         },
-        [bumpLayout, scrollToBlocks]
+        [bumpLayout, scrollToBlocks, snapToGrid, viewport.height, viewport.left, viewport.top, viewport.width]
     );
 
     const handleClearFlowchart = useCallback(() => {
@@ -1979,6 +2033,7 @@ function App() {
                     snapToGrid={snapToGrid}
                     onSnapToGridChange={setSnapToGrid}
                     onResetLocalStorage={handleResetLocalStorage}
+                    defaultExpandedPanel={initialPanel}
                     customFunctions={customFunctions}
                     onPackageSelectionAsCustomFunction={packageSelectionAsCustomFunction}
                     onDeleteCustomFunction={(id) =>

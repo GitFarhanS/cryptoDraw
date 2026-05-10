@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { serializeBytesToFormat } from '../converter-block/format-bytes';
+import { CHACHA_QUARTER_PRESETS } from '../stream-block/chacha20-ietf';
 import { evaluateGraph } from './evaluate-graph';
 import { upsertEdgeForInputPort } from './edge-types';
 
@@ -95,6 +96,121 @@ describe('evaluateGraph data transfer', () => {
         expect(serializeBytesToFormat('binary', outBytes!).slice(0, outBits)).toBe('10');
     });
 
+    it('permute block reverses bytes with reverse preset', () => {
+        const blocks = [
+            { id: 'src', type: 'ascii', x: 0, y: 0, text: 'ABCD' },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bytes',
+                permutePreset: 'reverse',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('ascii', bytes!)).toBe('DCBA')
+    })
+
+    it('permute block reorders bits from custom index list', () => {
+        const blocks = [
+            { id: 'src', type: 'binary', x: 0, y: 0, text: '10110000' },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'custom',
+                permuteOrder: '3,2,1,0',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        const bitLength = result.portBitLengths.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(result.portFormats.get('out\0in')).toBe('binary')
+        expect(bitLength).toBe(4)
+        expect(serializeBytesToFormat('binary', bytes!).slice(0, bitLength)).toBe('1101')
+    })
+
+    it('DES IP maps standard DES input bit 58 (1-based) to output MSB', () => {
+        const blocks = [
+            {
+                id: 'src',
+                type: 'hex',
+                x: 0,
+                y: 0,
+                text: '0000000000000040',
+            },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desIp',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        const bitLength = result.portBitLengths.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(bitLength).toBe(64)
+        const bits = serializeBytesToFormat('binary', bytes!).slice(0, bitLength!)
+        expect(bits[0]).toBe('1')
+        expect(bits.slice(1)).toBe('0'.repeat(63))
+    })
+
+    it('DES IP followed by DES FP round-trips a 64-bit block', () => {
+        const blocks = [
+            { id: 'src', type: 'hex', x: 0, y: 0, text: '0123456789abcdef' },
+            {
+                id: 'ip',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desIp',
+            },
+            {
+                id: 'fp',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'desFp',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'ip', 'in'),
+            edge('e2', 'ip', 'out', 'fp', 'in'),
+            edge('e3', 'fp', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('hex', bytes!).toLowerCase()).toBe('0123456789abcdef')
+    })
+
     it('operation block produces deterministic output from two wired inputs', () => {
         const blocks = [
             { id: 'a', type: 'hex', x: 0, y: 0, text: '0f' },
@@ -123,6 +239,103 @@ describe('evaluateGraph data transfer', () => {
         expect(serializeBytesToFormat('hex', bytes!)).toBe('ed');
         expect(result.portFormats.get('sub\0out')).toBe('hex');
     });
+
+    it('ChaCha20-IETF emits RFC 8439 §2.3.2 keystream prefix with counting key and test nonce', () => {
+        const keyHex =
+            '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+        const nonceHex = '000000090000004a00000000'
+        const blocks: any[] = [
+            { id: 'key', type: 'hex', x: 0, y: 0, text: keyHex },
+            { id: 'nonce', type: 'hex', x: 0, y: 0, text: nonceHex },
+            {
+                id: 'init',
+                type: 'chachaIetfInit',
+                x: 0,
+                y: 0,
+                chachaBlockCounter: 1,
+            },
+            {
+                id: 'fin',
+                type: 'chachaIetfFinalize',
+                x: 0,
+                y: 0,
+                chachaOutputByteLength: 16,
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges: any[] = [
+            edge('ek', 'key', 'out', 'init', 'in:key'),
+            edge('en', 'nonce', 'out', 'init', 'in:nonce'),
+            edge('ei', 'init', 'out', 'fin', 'in:initial'),
+        ]
+        let prevId = 'init'
+        for (let i = 0; i < 10; i++) {
+            const colId = `col${i}`
+            const diagId = `diag${i}`
+            blocks.push(
+                { id: colId, type: 'chachaIetfColumnRound', x: 0, y: 0 },
+                { id: diagId, type: 'chachaIetfDiagonalRound', x: 0, y: 0 },
+            )
+            edges.push(edge(`ec${i}`, prevId, 'out', colId, 'in'))
+            edges.push(edge(`ed${i}`, colId, 'out', diagId, 'in'))
+            prevId = diagId
+        }
+        edges.push(edge('el', prevId, 'out', 'fin', 'in:state'))
+        edges.push(edge('eo', 'fin', 'out', 'out', 'in'))
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('10f1e7e4d13b5915500fdd1fa32071c4')
+        expect(result.portFormats.get('out\0in')).toBe('hex')
+    })
+
+    it('ChaCha20-IETF Init + eighty QuarterRound blocks + Finalize matches RFC §2.3.2 prefix', () => {
+        const keyHex =
+            '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+        const nonceHex = '000000090000004a00000000'
+        const qrIds = Array.from({ length: 80 }, (_, i) => `qr${i}`)
+        const blocks: any[] = [
+            { id: 'key', type: 'hex', x: 0, y: 0, text: keyHex },
+            { id: 'nonce', type: 'hex', x: 0, y: 0, text: nonceHex },
+            {
+                id: 'init',
+                type: 'chachaIetfInit',
+                x: 0,
+                y: 0,
+                chachaBlockCounter: 1,
+            },
+            ...qrIds.map((id, i) => ({
+                id,
+                type: 'chachaIetfQuarterRound',
+                x: 0,
+                y: 0,
+                chachaQuarterPreset: CHACHA_QUARTER_PRESETS[i % 8],
+            })),
+            {
+                id: 'fin',
+                type: 'chachaIetfFinalize',
+                x: 0,
+                y: 0,
+                chachaOutputByteLength: 16,
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges: any[] = [
+            edge('ek', 'key', 'out', 'init', 'in:key'),
+            edge('en', 'nonce', 'out', 'init', 'in:nonce'),
+            edge('ei0', 'init', 'out', qrIds[0]!, 'in'),
+            edge('ei1', 'init', 'out', 'fin', 'in:initial'),
+            ...Array.from({ length: 79 }, (_, i) =>
+                edge(`eq${i}`, qrIds[i]!, 'out', qrIds[i + 1]!, 'in')),
+            edge('eq79', qrIds[79]!, 'out', 'fin', 'in:state'),
+            edge('eo', 'fin', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        expect(result.cycle).toBe(false)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('10f1e7e4d13b5915500fdd1fa32071c4')
+    })
 
     it('operation output format auto-detects same input formats', () => {
         const blocks = [

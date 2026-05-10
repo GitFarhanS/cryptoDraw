@@ -1,5 +1,6 @@
 import { deflateSync, inflateSync } from 'fflate';
 import { isPlacedBlockType } from '../input-blocks/drag-constants';
+import { isChaChaQuarterPreset } from '../stream-block/chacha20-ietf';
 import { isEdgeValidForBlocks, upsertEdgeForInputPort, type GraphEdge } from './edge-types';
 import type { PlacedBlockRecord } from '../types/graph';
 
@@ -8,6 +9,8 @@ const OP_DISPLAY_MODES = ['auto', 'manual'] as const;
 const OP_DISPLAY_FORMATS = ['binary', 'ascii', 'hex', 'decimal'] as const;
 const OP_SHIFT_MODES = ['logical', 'circular'] as const;
 const FORMAT_VALUES = ['binary', 'ascii', 'hex', 'decimal'] as const;
+const PERMUTE_MODES = ['bytes', 'bits'] as const;
+const PERMUTE_PRESETS = ['custom', 'identity', 'reverse', 'desIp', 'desFp'] as const;
 
 export function serializeFlowchart(placedBlocks: PlacedBlockRecord[], edges: GraphEdge[]) {
     return JSON.stringify(
@@ -121,6 +124,15 @@ function sanitizeBlocks(blocks: unknown[]) {
         if (FORMAT_VALUES.includes(candidate.fcOutputFormat as (typeof FORMAT_VALUES)[number])) {
             next.fcOutputFormat = candidate.fcOutputFormat;
         }
+        if (PERMUTE_MODES.includes(candidate.permuteMode as (typeof PERMUTE_MODES)[number])) {
+            next.permuteMode = candidate.permuteMode
+        }
+        if (PERMUTE_PRESETS.includes(candidate.permutePreset as (typeof PERMUTE_PRESETS)[number])) {
+            next.permutePreset = candidate.permutePreset
+        }
+        if (typeof candidate.permuteOrder === 'string') {
+            next.permuteOrder = candidate.permuteOrder
+        }
         if (OP_DISPLAY_MODES.includes(candidate.opDisplayMode ?? 'auto')) {
             next.opDisplayMode = candidate.opDisplayMode;
         }
@@ -139,6 +151,15 @@ function sanitizeBlocks(blocks: unknown[]) {
         }
         if (Number.isFinite(Number(candidate.joinCount))) {
             next.joinCount = clampInt(candidate.joinCount, 1, 24);
+        }
+        if (Number.isFinite(Number(candidate.chachaBlockCounter))) {
+            next.chachaBlockCounter = Number(candidate.chachaBlockCounter) >>> 0
+        }
+        if (Number.isFinite(Number(candidate.chachaOutputByteLength))) {
+            next.chachaOutputByteLength = clampInt(candidate.chachaOutputByteLength, 1, 64)
+        }
+        if (typeof candidate.chachaQuarterPreset === 'string' && isChaChaQuarterPreset(candidate.chachaQuarterPreset)) {
+            next.chachaQuarterPreset = candidate.chachaQuarterPreset
         }
 
         return next;
