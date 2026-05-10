@@ -860,10 +860,10 @@ body[data-theme='solarized-dark'] .theme-select {
     color: var(--app-muted);
 }
 
-/* Muted alone fails WCAG-style legibility on pale panel chrome (Light / Sepia). */
+/* Darken primary fg slightly so uppercase labels beat pale panel surfaces (Light / Sepia). */
 body[data-theme='light'] .cipher-templates-group__title,
 body[data-theme='sepia'] .cipher-templates-group__title {
-    color: color-mix(in oklab, var(--app-fg) 92%, var(--app-muted));
+    color: color-mix(in oklab, var(--app-fg) 62%, black);
 }
 
 .cipher-templates-group__cards {
