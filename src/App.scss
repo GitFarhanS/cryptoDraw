@@ -860,8 +860,11 @@ body[data-theme='solarized-dark'] .theme-select {
     color: var(--app-muted);
 }
 
-/* Darken primary fg slightly so uppercase labels beat pale panel surfaces (Light / Sepia). */
-body[data-theme='light'] .cipher-templates-group__title,
+/* Light expanded Templates uses dark stepped tones — headings match deep-band panel chrome. */
+body[data-theme='light'] .cipher-templates-group__title {
+    color: var(--tone-strong-fg);
+}
+
 body[data-theme='sepia'] .cipher-templates-group__title {
     color: color-mix(in oklab, var(--app-fg) 62%, black);
 }
