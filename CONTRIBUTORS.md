@@ -4,11 +4,11 @@ Thanks to everyone who has contributed code, ideas, or review feedback to crypto
 
 ## Maintainers
 
-- **Farhan Shaikh** ([@GitFarhanS](https://github.com/GitFarhanS)) — project author and maintainer.
+- **Farhan** ([@GitFarhanS](https://github.com/GitFarhanS)) — project author and maintainer.
 
 ## Contributors
 
-- **Arman Shaikh** ([@Arman511](https://github.com/Arman511)) — project co-author and maintainer.
+- **Arman** ([@Arman511](https://github.com/Arman511)) — project co-author and maintainer.
 
 ## How to get on this list
 

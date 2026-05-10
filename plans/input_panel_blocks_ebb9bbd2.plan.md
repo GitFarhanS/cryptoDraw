@@ -2,18 +2,18 @@
 name: Input panel blocks
 overview: Rename the first side panel to "Input", add a new `../src/input-blocks/` module with four stacked block components (Binary, Hex, Decimal, ASCII), and render them in the expanded Input view instead of the generic placeholder.
 todos:
-  - id: rename-input
-    content: Change PANELS[0] to 'Input' in side-panel-expandable-panels.jsx
-    status: completed
-  - id: add-input-blocks
-    content: Create src/input-blocks/* (four block components + input-blocks.jsx composer)
-    status: completed
-  - id: wire-expanded
-    content: Render InputBlocks when expanded panel is Input; keep placeholder for other panels
-    status: completed
-  - id: css-blocks
-    content: Add .input-blocks and per-block styles in App.css
-    status: completed
+    - id: rename-input
+      content: Change PANELS[0] to 'Input' in side-panel-expandable-panels.jsx
+      status: completed
+    - id: add-input-blocks
+      content: Create src/input-blocks/* (four block components + input-blocks.jsx composer)
+      status: completed
+    - id: wire-expanded
+      content: Render InputBlocks when expanded panel is Input; keep placeholder for other panels
+      status: completed
+    - id: css-blocks
+      content: Add .input-blocks and per-block styles in App.css
+      status: completed
 isProject: false
 ---
 
@@ -43,13 +43,13 @@ const PANELS = [
 
 Add small presentational components (one file per block, kebab-case to match [`../src/side-panel.jsx`](../src/side-panel.jsx) / [`../src/mini-map.jsx`](../src/mini-map.jsx)):
 
-| File | Role |
-|------|------|
-| [`../src/input-blocks/binary-block.jsx`](../src/input-blocks/binary-block.jsx) | Block titled Binary with a short description + controlled or local `<textarea>` (placeholder text only unless you later wire state). |
-| [`../src/input-blocks/hex-block.jsx`](../src/input-blocks/hex-block.jsx) | Same pattern for Hex. |
-| [`../src/input-blocks/decimal-block.jsx`](../src/input-blocks/decimal-block.jsx) | Same for Decimal. |
-| [`../src/input-blocks/ascii-block.jsx`](../src/input-blocks/ascii-block.jsx) | Same for ASCII. |
-| [`../src/input-blocks/input-blocks.jsx`](../src/input-blocks/input-blocks.jsx) | Composes all four in order inside a wrapper (e.g. `div.input-blocks`) with consistent spacing. |
+| File                                                                             | Role                                                                                                                                 |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [`../src/input-blocks/binary-block.jsx`](../src/input-blocks/binary-block.jsx)   | Block titled Binary with a short description + controlled or local `<textarea>` (placeholder text only unless you later wire state). |
+| [`../src/input-blocks/hex-block.jsx`](../src/input-blocks/hex-block.jsx)         | Same pattern for Hex.                                                                                                                |
+| [`../src/input-blocks/decimal-block.jsx`](../src/input-blocks/decimal-block.jsx) | Same for Decimal.                                                                                                                    |
+| [`../src/input-blocks/ascii-block.jsx`](../src/input-blocks/ascii-block.jsx)     | Same for ASCII.                                                                                                                      |
+| [`../src/input-blocks/input-blocks.jsx`](../src/input-blocks/input-blocks.jsx)   | Composes all four in order inside a wrapper (e.g. `div.input-blocks`) with consistent spacing.                                       |
 
 No cross-format conversion in this pass unless you ask for it later; each block is a distinct UI “slot” for that representation.
 

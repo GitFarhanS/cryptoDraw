@@ -1,19 +1,19 @@
 ---
 name: Drawer-sync strip flex
-overview: "Lift side panel open state to App, replace `@starting-style` with a two-frame explicit “start” class for the expanded strip, and add `contain: layout`, `will-change: flex-basis`, and longhand flex transitions on the track/strips so expand/collapse stays in sync when the drawer opens and closes."
+overview: 'Lift side panel open state to App, replace `@starting-style` with a two-frame explicit “start” class for the expanded strip, and add `contain: layout`, `will-change: flex-basis`, and longhand flex transitions on the track/strips so expand/collapse stays in sync when the drawer opens and closes.'
 todos:
-  - id: lift-drawer-state
-    content: Lift side panel open state to App.jsx; make SidePanel controlled (open + onOpenChange); pass drawerOpen to GrayscalePanels.
-    status: completed
-  - id: grayscale-sync-entry
-    content: "GrayscalePanels: reset expansion when drawer closes; guard clicks when closed; add is-expanded-start + double rAF to replace @starting-style."
-    status: completed
-  - id: css-contain-willchange
-    content: "App.css: contain:layout on .grayscale-panels-track; strip transitions for flex-basis/grow/shrink + will-change; .is-expanded-start; remove @starting-style and duplicate transition on .is-expanded only."
-    status: completed
-  - id: drawer-easing
-    content: Align .side-panel-drawer width transition easing/duration with strip (0.32s cubic-bezier).
-    status: completed
+    - id: lift-drawer-state
+      content: Lift side panel open state to App.jsx; make SidePanel controlled (open + onOpenChange); pass drawerOpen to GrayscalePanels.
+      status: completed
+    - id: grayscale-sync-entry
+      content: 'GrayscalePanels: reset expansion when drawer closes; guard clicks when closed; add is-expanded-start + double rAF to replace @starting-style.'
+      status: completed
+    - id: css-contain-willchange
+      content: 'App.css: contain:layout on .grayscale-panels-track; strip transitions for flex-basis/grow/shrink + will-change; .is-expanded-start; remove @starting-style and duplicate transition on .is-expanded only.'
+      status: completed
+    - id: drawer-easing
+      content: Align .side-panel-drawer width transition easing/duration with strip (0.32s cubic-bezier).
+      status: completed
 isProject: false
 ---
 
@@ -42,9 +42,9 @@ Optional polish: add `className={\`side-panel ... ${open ? 'is-open' : ''}\`}` r
 
 - Remove the `@starting-style` block from [`../src/App.css`](../src/App.css).
 - In `GrayscalePanels`, when transitioning **to** expanded (user picks a strip that was not already expanded):
-  1. Set `expandedIndex` to `index` (parent gets `grayscale-panels--has-expanded`, strip gets `is-expanded`).
-  2. On the same commit, also set an **`is-expanded-start`** (name as you prefer) class on that strip so CSS forces the **same** longhands as the final expanded strip but **`flex-basis: calc(100% / var(--grayscale-strip-count))`** (match the old `@starting-style` intent).
-  3. After **two** `requestAnimationFrame` callbacks (or `useLayoutEffect` + double rAF), remove `is-expanded-start` so the stylesheet’s normal `.is-expanded` `flex-basis` applies and the browser runs one transition from equal share → wide basis.
+    1. Set `expandedIndex` to `index` (parent gets `grayscale-panels--has-expanded`, strip gets `is-expanded`).
+    2. On the same commit, also set an **`is-expanded-start`** (name as you prefer) class on that strip so CSS forces the **same** longhands as the final expanded strip but **`flex-basis: calc(100% / var(--grayscale-strip-count))`** (match the old `@starting-style` intent).
+    3. After **two** `requestAnimationFrame` callbacks (or `useLayoutEffect` + double rAF), remove `is-expanded-start` so the stylesheet’s normal `.is-expanded` `flex-basis` applies and the browser runs one transition from equal share → wide basis.
 - Collapsing (`expandedIndex` → `null`): no entry class; just clear state.
 - If the user toggles **same** strip to collapse, skip the entry sequence.
 
@@ -71,12 +71,12 @@ If transitions feel redundant on every hover/focus, we can later narrow `will-ch
 
 ## Files touched
 
-| File | Change |
-|------|--------|
-| [`../src/App.jsx`](../src/App.jsx) | Panel state; pass props to `SidePanel` and `GrayscalePanels` |
-| [`../src/side-panel.jsx`](../src/side-panel.jsx) | Controlled `open` / `onOpenChange` |
-| [`../src/grayscale-panels.jsx`](../src/grayscale-panels.jsx) | `drawerOpen` prop, effect reset, guarded toggle, entry class + rAF |
-| [`../src/App.css`](../src/App.css) | Remove `@starting-style`, add `contain`, strip transitions + `will-change`, `.is-expanded-start`, drawer easing, dedupe expanded-only transition |
+| File                                                         | Change                                                                                                                                           |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`../src/App.jsx`](../src/App.jsx)                           | Panel state; pass props to `SidePanel` and `GrayscalePanels`                                                                                     |
+| [`../src/side-panel.jsx`](../src/side-panel.jsx)             | Controlled `open` / `onOpenChange`                                                                                                               |
+| [`../src/grayscale-panels.jsx`](../src/grayscale-panels.jsx) | `drawerOpen` prop, effect reset, guarded toggle, entry class + rAF                                                                               |
+| [`../src/App.css`](../src/App.css)                           | Remove `@starting-style`, add `contain`, strip transitions + `will-change`, `.is-expanded-start`, drawer easing, dedupe expanded-only transition |
 
 ## Verification
 

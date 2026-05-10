@@ -1,28 +1,28 @@
-import { useId, useState } from 'react'
-import PortHandle from '../port-handle'
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
+import { useId, useState } from 'react';
+import PortHandle from '../port-handle';
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
 }
 
 function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-join-title`
-    const isCanvas = Boolean(block)
-    const [paletteState, setPaletteState] = useState({ joinCount: 2 })
+    const id = useId();
+    const titleId = `${id}-join-title`;
+    const isCanvas = Boolean(block);
+    const [paletteState, setPaletteState] = useState({ joinCount: 2 });
 
-    const joinCount = isCanvas ? (block.joinCount ?? 2) : paletteState.joinCount
+    const joinCount = isCanvas ? (block.joinCount ?? 2) : paletteState.joinCount;
 
     const setJoinCount = (next: number) => {
         if (isCanvas) {
-            onBlockPatch?.({ joinCount: next })
+            onBlockPatch?.({ joinCount: next });
         } else {
-            setPaletteState((s) => ({ ...s, joinCount: next }))
+            setPaletteState((s) => ({ ...s, joinCount: next }));
         }
-    }
+    };
 
     const sectionClass = [
         'input-block',
@@ -30,14 +30,16 @@ function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Reado
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
             className={sectionClass}
             aria-labelledby={titleId}
             draggable={draggableToCanvas}
-            onDragStart={draggableToCanvas ? (e) => attachPaletteDragData(e, 'joinLots') : undefined}
+            onDragStart={
+                draggableToCanvas ? (e) => attachPaletteDragData(e, 'joinLots') : undefined
+            }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
             <h3 className="input-block-title" id={titleId}>
@@ -55,9 +57,12 @@ function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Reado
                 value={joinCount}
                 onChange={(e) => setJoinCount(Number(e.target.value))}
             />
-            {(isCanvas || draggableToCanvas) ? (
-                <div className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive ${joinCount > 1 ? 'notch-ports-row--spread' : ''
-                    }`.trim()}>
+            {isCanvas || draggableToCanvas ? (
+                <div
+                    className={`notch-ports-row notch-ports-row--top notch-ports-row--interactive ${
+                        joinCount > 1 ? 'notch-ports-row--spread' : ''
+                    }`.trim()}
+                >
                     {Array.from({ length: joinCount }).map((_, i) => (
                         <PortHandle
                             key={i}
@@ -69,7 +74,7 @@ function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Reado
                     ))}
                 </div>
             ) : null}
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -80,7 +85,7 @@ function JoinLotsBlock({ draggableToCanvas = false, block, onBlockPatch }: Reado
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default JoinLotsBlock
+export default JoinLotsBlock;
