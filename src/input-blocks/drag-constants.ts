@@ -2,7 +2,7 @@ export const INPUT_BLOCK_DRAG_MIME = 'application/x-crypto-drawer-block-type'
 
 export const INPUT_BLOCK_TYPES = ['binary', 'hex', 'decimal', 'ascii'] as const
 
-export const CONVERTER_BLOCK_TYPES = ['splitIntoLots', 'joinLots', 'formatConvert'] as const
+export const CONVERTER_BLOCK_TYPES = ['splitIntoLots', 'joinLots', 'formatConvert', 'permuteReorder'] as const
 
 export const OPERATION_BLOCK_TYPES = [
   'opXor',

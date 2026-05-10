@@ -24,6 +24,9 @@ export interface PlacedBlockRecord {
     fcText?: string
     fcInputFormat?: DataFormat
     fcOutputFormat?: DataFormat
+    permuteMode?: 'bytes' | 'bits'
+    permutePreset?: 'custom' | 'identity' | 'reverse' | 'desIp' | 'desFp'
+    permuteOrder?: string
     opDisplayMode?: 'auto' | 'manual'
     opDisplayFormat?: DataFormat
     opShiftMode?: 'logical' | 'circular'

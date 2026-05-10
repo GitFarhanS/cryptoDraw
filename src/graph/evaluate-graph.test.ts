@@ -89,6 +89,56 @@ describe('evaluateGraph data transfer', () => {
         expect(serializeBytesToFormat('binary', outBytes!).slice(0, outBits)).toBe('10')
     })
 
+    it('permute block reverses bytes with reverse preset', () => {
+        const blocks = [
+            { id: 'src', type: 'ascii', x: 0, y: 0, text: 'ABCD' },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bytes',
+                permutePreset: 'reverse',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('ascii', bytes!)).toBe('DCBA')
+    })
+
+    it('permute block reorders bits from custom index list', () => {
+        const blocks = [
+            { id: 'src', type: 'binary', x: 0, y: 0, text: '10110000' },
+            {
+                id: 'permute',
+                type: 'permuteReorder',
+                x: 0,
+                y: 0,
+                permuteMode: 'bits',
+                permutePreset: 'custom',
+                permuteOrder: '3,2,1,0',
+            },
+            { id: 'out', type: 'output', x: 0, y: 0 },
+        ]
+        const edges = [
+            edge('e1', 'src', 'out', 'permute', 'in'),
+            edge('e2', 'permute', 'out', 'out', 'in'),
+        ]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('out\0in')
+        const bitLength = result.portBitLengths.get('out\0in')
+        expect(bytes).toBeDefined()
+        expect(result.portFormats.get('out\0in')).toBe('binary')
+        expect(bitLength).toBe(4)
+        expect(serializeBytesToFormat('binary', bytes!).slice(0, bitLength)).toBe('1101')
+    })
+
     it('operation block produces deterministic output from two wired inputs', () => {
         const blocks = [
             { id: 'a', type: 'hex', x: 0, y: 0, text: '0f' },
