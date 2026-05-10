@@ -21,6 +21,18 @@ const PANELS = [
 
 const PANEL_FLOW_DENOM = Math.max(1, PANELS.length - 1);
 
+/** High contrast theme: one vivid outline colour per panel row (see App.scss). */
+const PANEL_HC_OUTLINES: Record<(typeof PANELS)[number], string> = {
+    Input: '#ffff00',
+    Converter: '#38bdf8',
+    Operations: '#c084fc',
+    'S-Boxes': '#4ade80',
+    Stream: '#fb923c',
+    Output: '#f472b6',
+    Templates: '#22d3ee',
+    Settings: '#ffffff',
+};
+
 interface Props {
     onExportFlowchart: () => string;
     onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
@@ -113,7 +125,12 @@ function SidePanelExpandablePanels({
                 <section
                     id={`${baseId}-region-${expandedIndex}`}
                     className="sp-panel-expanded"
-                    style={{ '--sp-tone-flow': toneFlow } as React.CSSProperties}
+                    style={
+                        {
+                            '--sp-tone-flow': toneFlow,
+                            '--sp-hc-outline': PANEL_HC_OUTLINES[title],
+                        } as React.CSSProperties
+                    }
                     data-tone-band={toneBand}
                     aria-labelledby={titleId}
                 >
@@ -143,7 +160,12 @@ function SidePanelExpandablePanels({
                     key={label}
                     type="button"
                     className="sp-panel-row"
-                    style={{ '--sp-tone-flow': index / PANEL_FLOW_DENOM } as React.CSSProperties}
+                    style={
+                        {
+                            '--sp-tone-flow': index / PANEL_FLOW_DENOM,
+                            '--sp-hc-outline': PANEL_HC_OUTLINES[label],
+                        } as React.CSSProperties
+                    }
                     data-tone-band={index / PANEL_FLOW_DENOM >= 0.55 ? 'deep' : 'mid'}
                     onClick={() => setExpandedIndex(index)}
                     aria-expanded={false}
