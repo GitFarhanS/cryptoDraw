@@ -2,7 +2,7 @@
 
 A visual, node-based playground for exploring how data is encoded, transformed, and combined at the byte and bit level. Drag blocks onto an canvas, wire them together, and watch values flow through the graph in real time.
 
-**Live demo:** [gitfarhans.github.io/cryptoDraw](https://gitfarhans.github.io/cryptoDraw/)
+**Live demo:** [https://cryptodraw.farhanshaikh.uk](https://cryptodraw.farhanshaikh.uk)
 
 ## What it is
 
@@ -95,14 +95,14 @@ The dev server prints a local URL (typically `http://localhost:5173/cryptoDraw/`
 
 ### Available scripts
 
-| Command           | What it does                                              |
-| ----------------- | --------------------------------------------------------- |
-| `pnpm run dev`     | Start the Vite dev server with HMR.                       |
-| `pnpm run build`   | Produce a production build in `dist/`.                    |
-| `pnpm run preview` | Serve the production build locally for a final smoke test.|
-| `pnpm run lint`    | Run ESLint over the project.                              |
-| `pnpm test`        | Run the Vitest unit-test suite once.                      |
-| `pnpm run deploy`  | Build and publish `dist/` to the `gh-pages` branch.       |
+| Command            | What it does                                               |
+| ------------------ | ---------------------------------------------------------- |
+| `pnpm run dev`     | Start the Vite dev server with HMR.                        |
+| `pnpm run build`   | Produce a production build in `dist/`.                     |
+| `pnpm run preview` | Serve the production build locally for a final smoke test. |
+| `pnpm run lint`    | Run ESLint over the project.                               |
+| `pnpm test`        | Run the Vitest unit-test suite once.                       |
+| `pnpm run deploy`  | Build and publish `dist/` to the `gh-pages` branch.        |
 
 ## Deployment
 

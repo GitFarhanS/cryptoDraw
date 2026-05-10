@@ -1,9 +1,9 @@
-import React from 'react'
+import React from 'react';
 
 interface Props {
-    children?: React.ReactNode
-    open: boolean
-    onOpenChange: (open: boolean) => void
+    children?: React.ReactNode;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
 function SidePanel({ children, open, onOpenChange }: Props) {
@@ -30,7 +30,7 @@ function SidePanel({ children, open, onOpenChange }: Props) {
                 </div>
             </div>
         </aside>
-    )
+    );
 }
 
-export default SidePanel
+export default SidePanel;

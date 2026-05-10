@@ -1,14 +1,14 @@
-import { useId, useState } from 'react'
-import PortHandle from '../port-handle'
-import { portRegistryKey } from '../graph/edge-types'
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { BYTE_FORMATS, serializeBytesToFormat } from './format-bytes'
+import { useId, useState } from 'react';
+import PortHandle from '../port-handle';
+import { portRegistryKey } from '../graph/edge-types';
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
+import { BYTE_FORMATS, serializeBytesToFormat } from './format-bytes';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
-    evaluation?: any
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
+    evaluation?: any;
 }
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -16,50 +16,56 @@ const FORMAT_LABELS: Record<string, string> = {
     ascii: 'ASCII',
     hex: 'Hex',
     decimal: 'Decimal (0–255)',
-}
+};
 
-function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, evaluation }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-fmt-title`
-    const isCanvas = Boolean(block)
+function FormatConvertBlock({
+    draggableToCanvas = false,
+    block,
+    onBlockPatch,
+    evaluation,
+}: Readonly<Props>) {
+    const id = useId();
+    const titleId = `${id}-fmt-title`;
+    const isCanvas = Boolean(block);
 
     const [paletteState, setPaletteState] = useState({
         inputFormat: 'hex',
         outputFormat: 'ascii',
-    })
+    });
 
-    const wiredInKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
-    const wiredInBytes = isCanvas ? evaluation?.portBytes?.get(wiredInKey) : undefined
-    const wiredInFormat = isCanvas ? evaluation?.portFormats?.get(wiredInKey) : undefined
+    const wiredInKey = isCanvas ? portRegistryKey(block.id, 'in') : '';
+    const wiredInBytes = isCanvas ? evaluation?.portBytes?.get(wiredInKey) : undefined;
+    const wiredInFormat = isCanvas ? evaluation?.portFormats?.get(wiredInKey) : undefined;
 
-    const inputFormat = wiredInFormat ?? (isCanvas ? (block.fcInputFormat ?? 'hex') : paletteState.inputFormat)
-    const outputFormat = isCanvas ? (block.fcOutputFormat ?? 'ascii') : paletteState.outputFormat
+    const inputFormat =
+        wiredInFormat ?? (isCanvas ? (block.fcInputFormat ?? 'hex') : paletteState.inputFormat);
+    const outputFormat = isCanvas ? (block.fcOutputFormat ?? 'ascii') : paletteState.outputFormat;
 
     const setInputFormat = (next: string) => {
         if (isCanvas) {
-            onBlockPatch?.({ fcInputFormat: next })
+            onBlockPatch?.({ fcInputFormat: next });
         } else {
-            setPaletteState((s) => ({ ...s, inputFormat: next }))
+            setPaletteState((s) => ({ ...s, inputFormat: next }));
         }
-    }
+    };
 
     const setOutputFormat = (next: string) => {
         if (isCanvas) {
-            onBlockPatch?.({ fcOutputFormat: next })
+            onBlockPatch?.({ fcOutputFormat: next });
         } else {
-            setPaletteState((s) => ({ ...s, outputFormat: next }))
+            setPaletteState((s) => ({ ...s, outputFormat: next }));
         }
-    }
+    };
 
-    const wiredOutKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
-    const evalBytes = isCanvas ? evaluation?.portBytes?.get(wiredOutKey) : undefined
+    const wiredOutKey = isCanvas ? portRegistryKey(block.id, 'out') : '';
+    const evalBytes = isCanvas ? evaluation?.portBytes?.get(wiredOutKey) : undefined;
 
     const displayOut =
         evalBytes === undefined
             ? wiredInBytes === undefined
                 ? ''
                 : serializeBytesToFormat(outputFormat, wiredInBytes)
-            : serializeBytesToFormat(outputFormat, evalBytes)
+            : serializeBytesToFormat(outputFormat, evalBytes);
 
     const sectionClass = [
         'input-block',
@@ -67,7 +73,7 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
@@ -75,11 +81,13 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
             aria-labelledby={titleId}
             draggable={draggableToCanvas}
             onDragStart={
-                draggableToCanvas ? (event) => attachPaletteDragData(event, 'formatConvert') : undefined
+                draggableToCanvas
+                    ? (event) => attachPaletteDragData(event, 'formatConvert')
+                    : undefined
             }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -93,7 +101,8 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                 Format convert
             </h3>
             <p className="input-block-hint">
-                Decode as one representation, encode as another (via bytes). Decimal: comma-separated values 0–255.
+                Decode as one representation, encode as another (via bytes). Decimal:
+                comma-separated values 0–255.
             </p>
             <div className="converter-block-row">
                 <div>
@@ -146,7 +155,7 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                 spellCheck={false}
                 aria-label="Converted output"
             />
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -157,7 +166,7 @@ function FormatConvertBlock({ draggableToCanvas = false, block, onBlockPatch, ev
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default FormatConvertBlock
+export default FormatConvertBlock;

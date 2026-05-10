@@ -7,6 +7,12 @@ body {
     overflow: auto;
     background: var(--app-bg);
     color: var(--app-fg);
+    scrollbar-width: none;
+
+    /* Hide scrollbars in Webkit browsers (Chrome, Safari, Edge) */
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 #root {

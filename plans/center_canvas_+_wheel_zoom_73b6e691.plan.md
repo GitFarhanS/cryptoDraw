@@ -2,21 +2,21 @@
 name: Center canvas + wheel zoom
 overview: Scroll the document once so the initial view is centered on the 8000×8000 grid, then introduce a zoom factor with wheel-only interaction by wrapping the canvas in a scroll-sized outer layer and scaling the inner grid; update coordinate math in App, MiniMap consumers, drag/drop, and block dragging so everything stays consistent.
 todos:
-  - id: dom-zoom-wrapper
-    content: Add zoom state and outer scroll-extent + inner scale(zoom) wrapper in App.jsx
-    status: completed
-  - id: initial-center
-    content: One-time scrollTo center using CANVAS_SIZE * zoom and viewport size
-    status: completed
-  - id: wheel-zoom
-    content: Implement wheel listener with preventDefault, clamped zoom, zoom-to-cursor scroll adjustment
-    status: completed
-  - id: viewport-minimap-nav
-    content: Viewport in canvas space; update navigateFromMinimap clamp math
-    status: completed
-  - id: drop-drag
-    content: Fix drop coordinates and canvas-placed-block drag with zoom (context or prop)
-    status: completed
+    - id: dom-zoom-wrapper
+      content: Add zoom state and outer scroll-extent + inner scale(zoom) wrapper in App.jsx
+      status: completed
+    - id: initial-center
+      content: One-time scrollTo center using CANVAS_SIZE * zoom and viewport size
+      status: completed
+    - id: wheel-zoom
+      content: Implement wheel listener with preventDefault, clamped zoom, zoom-to-cursor scroll adjustment
+      status: completed
+    - id: viewport-minimap-nav
+      content: Viewport in canvas space; update navigateFromMinimap clamp math
+      status: completed
+    - id: drop-drag
+      content: Fix drop coordinates and canvas-placed-block drag with zoom (context or prop)
+      status: completed
 isProject: false
 ---
 
@@ -33,9 +33,9 @@ isProject: false
 
 - Add a **one-time** effect (e.g. `useRef` flag `didInitialScroll`) that runs after mount when `innerWidth` / `innerHeight` are known.
 - Call `window.scrollTo` with:
-  - `left: clamp(0, (CANVAS_SIZE * zoom - innerWidth) / 2, maxScrollLeft)`
-  - `top`: same pattern vertically  
-  Use the same `maxScroll*` formulas as navigation so behavior stays consistent when zoom is added (at `zoom === 1` this centers on the grid).
+    - `left: clamp(0, (CANVAS_SIZE * zoom - innerWidth) / 2, maxScrollLeft)`
+    - `top`: same pattern vertically  
+      Use the same `maxScroll*` formulas as navigation so behavior stays consistent when zoom is added (at `zoom === 1` this centers on the grid).
 
 ## 2. Zoom model (DOM)
 
@@ -55,9 +55,9 @@ Ref assignment: move `ref={canvasRef}` to the **inner** scaled element (the coor
 - Listen on **`wheel`** with **`{ passive: false }`** so you can **`preventDefault()`** and use wheel for zoom instead of native scroll (per your request).
 - Map `deltaY` to an exponential step, e.g. `nextZoom = clamp(zoom * exp(-deltaY * k))`, with small `k` for smooth steps.
 - **Zoom toward cursor** (preserve the canvas point under the pointer):
-  - Before changing zoom, compute canvas coordinates of the pointer (document/scroll space is fine): e.g. `canvasX = (window.scrollX + event.clientX) / zoom` (and similarly for Y), assuming the canvas stack starts at the document origin like today—adjust if you add margins by subtracting the outer wrapper’s document offset once.
-  - After setting `nextZoom`, set scroll so the same canvas point stays under the cursor:  
-    `scrollX = canvasX * nextZoom - event.clientX` (clamp to `[0, CANVAS_SIZE * nextZoom - innerWidth]`).
+    - Before changing zoom, compute canvas coordinates of the pointer (document/scroll space is fine): e.g. `canvasX = (window.scrollX + event.clientX) / zoom` (and similarly for Y), assuming the canvas stack starts at the document origin like today—adjust if you add margins by subtracting the outer wrapper’s document offset once.
+    - After setting `nextZoom`, set scroll so the same canvas point stays under the cursor:  
+      `scrollX = canvasX * nextZoom - event.clientX` (clamp to `[0, CANVAS_SIZE * nextZoom - innerWidth]`).
 
 Attach the listener to `window` or the outer canvas wrapper; guard so UI outside the canvas (e.g. minimap, side panel) can keep normal wheel behavior if desired, or document-wide zoom—default to **canvas area only** if you use `ref` + bounding-rect hit test.
 
@@ -88,9 +88,9 @@ Update `updateViewport` in [../src/App.jsx](../src/App.jsx) so the minimap alway
 - Pass **`zoom`** via React context (extend [../src/graph/canvas-graph-context.jsx](../src/graph/canvas-graph-context.jsx)) **or** a small prop from `App` through `CanvasPlacedBlock`—minimal surface area.
 - Replace move calculation with:
 
-  `nextX = (window.scrollX + event.clientX - offsetX) / zoom` (and same for Y),
+    `nextX = (window.scrollX + event.clientX - offsetX) / zoom` (and same for Y),
 
-  which matches the current behavior at `zoom === 1` and scales pointer sensitivity correctly when zoomed.
+    which matches the current behavior at `zoom === 1` and scales pointer sensitivity correctly when zoomed.
 
 ## 8. CSS touch-ups
 
@@ -111,11 +111,11 @@ flowchart LR
 
 ## Files to touch
 
-| File | Change |
-|------|--------|
-| [../src/App.jsx](../src/App.jsx) | Zoom state, outer wrapper, initial center scroll, wheel listener, viewport math, minimap navigate + drop coords |
-| [../src/canvas-placed-block.jsx](../src/canvas-placed-block.jsx) | Use `zoom` in drag formula |
-| [../src/graph/canvas-graph-context.jsx](../src/graph/canvas-graph-context.jsx) | Optional: expose `zoom` for blocks |
-| [../src/App.css](../src/App.css) | Optional class for outer extent / inner scaled canvas if needed beyond inline styles |
+| File                                                                           | Change                                                                                                          |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| [../src/App.jsx](../src/App.jsx)                                               | Zoom state, outer wrapper, initial center scroll, wheel listener, viewport math, minimap navigate + drop coords |
+| [../src/canvas-placed-block.jsx](../src/canvas-placed-block.jsx)               | Use `zoom` in drag formula                                                                                      |
+| [../src/graph/canvas-graph-context.jsx](../src/graph/canvas-graph-context.jsx) | Optional: expose `zoom` for blocks                                                                              |
+| [../src/App.css](../src/App.css)                                               | Optional class for outer extent / inner scaled canvas if needed beyond inline styles                            |
 
 No change required to [../src/mini-map.jsx](../src/mini-map.jsx) if viewport is passed in canvas space.

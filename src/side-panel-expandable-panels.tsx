@@ -1,69 +1,91 @@
-import React, { useId, useState } from 'react'
-import CipherTemplatesPanel from './cipher-templates-panel'
-import ConverterBlocks from './converter-block/converter-blocks'
-import FlowchartIoPanel from './flowchart-io-panel'
-import InputBlocks from './input-blocks/input-blocks'
-import OperationsBlocks from './operations-block/operations-blocks'
-import OutputBlock from './output-block/output-block'
-import SboxBlocks from './sbox-block/sbox-blocks'
-import StreamBlocks from './stream-block/stream-blocks'
+import React, { useId, useState } from 'react';
+import CipherTemplatesPanel from './cipher-templates-panel';
+import ConverterBlocks from './converter-block/converter-blocks';
+import FlowchartIoPanel from './flowchart-settings-panel';
+import InputBlocks from './input-blocks/input-blocks';
+import OperationsBlocks from './operations-block/operations-blocks';
+import OutputBlock from './output-block/output-block';
+import SboxBlocks from './sbox-block/sbox-blocks';
+import StreamBlocks from './stream-block/stream-blocks';
 
-const PANELS = ['Input', 'Converter', 'Operations', 'S-Boxes', 'Stream', 'Output', 'Flowchart', 'Templates']
-const VISUAL_TONE_COUNT = 5
+const PANELS = [
+    'Input',
+    'Converter',
+    'Operations',
+    'S-Boxes',
+    'Stream',
+    'Output',
+    'Settings',
+    'Templates',
+] as const;
+
+const VISUAL_TONE_COUNT = 5;
 
 interface Props {
-    onExportFlowchart: () => string
-    onImportFlowchart: (base64: string) => void
-    defaultExpandedPanel?: string | null
+    onExportFlowchart: () => string;
+    onImportFlowchart: (base64: string) => void;
+    onClearFlowchart: () => void;
+    snapToGrid: boolean;
+    onSnapToGridChange: (value: boolean) => void;
+    onResetLocalStorage: () => void;
+    defaultExpandedPanel?: string | null;
 }
 
 function SidePanelExpandablePanels({
     onExportFlowchart,
     onImportFlowchart,
+    onClearFlowchart,
+    snapToGrid,
+    onSnapToGridChange,
+    onResetLocalStorage,
     defaultExpandedPanel = null,
 }: Readonly<Props>) {
-    const baseId = useId()
+    const baseId = useId();
     const [expandedIndex, setExpandedIndex] = useState<number | null>(() => {
         if (!defaultExpandedPanel) {
-            return null
+            return null;
         }
-        const normalized = defaultExpandedPanel.trim().toLowerCase()
-        const index = PANELS.findIndex((panel) => panel.toLowerCase() === normalized)
-        return index >= 0 ? index : null
-    })
+        const normalized = defaultExpandedPanel.trim().toLowerCase();
+        const index = PANELS.findIndex((panel) => panel.toLowerCase() === normalized);
+        return index >= 0 ? index : null;
+    });
 
     const renderPanelContent = (title: string) => {
         switch (title) {
             case 'Input':
-                return <InputBlocks />
+                return <InputBlocks />;
             case 'Converter':
-                return <ConverterBlocks />
+                return <ConverterBlocks />;
             case 'Operations':
-                return <OperationsBlocks />
+                return <OperationsBlocks />;
             case 'S-Boxes':
-                return <SboxBlocks />
+                return <SboxBlocks />;
             case 'Stream':
-                return <StreamBlocks />
-            case 'Flowchart':
+                return <StreamBlocks />;
+            case 'Settings':
                 return (
                     <FlowchartIoPanel
                         onExportFlowchart={onExportFlowchart}
                         onImportFlowchart={onImportFlowchart}
+                        onClearFlowchart={onClearFlowchart}
+                        snapToGrid={snapToGrid}
+                        onSnapToGridChange={onSnapToGridChange}
+                        onResetLocalStorage={onResetLocalStorage}
                     />
-                )
+                );
             case 'Templates':
-                return <CipherTemplatesPanel onImportFlowchart={onImportFlowchart} />
+                return <CipherTemplatesPanel onImportFlowchart={onImportFlowchart} />;
             case 'Output':
-                return <OutputBlock draggableToCanvas />
+                return <OutputBlock draggableToCanvas />;
             default:
-                return <p className="sp-panel-expanded-placeholder">Content for {title}.</p>
+                return <p className="sp-panel-expanded-placeholder">Content for {title}.</p>;
         }
-    }
+    };
 
     if (expandedIndex !== null) {
-        const title = PANELS[expandedIndex]
-        const titleId = `${baseId}-title-${expandedIndex}`
-        const toneIndex = expandedIndex % VISUAL_TONE_COUNT
+        const title = PANELS[expandedIndex];
+        const titleId = `${baseId}-title-${expandedIndex}`;
+        const toneIndex = expandedIndex % VISUAL_TONE_COUNT;
 
         return (
             <div className="sp-panels sp-panels--expanded">
@@ -86,12 +108,10 @@ function SidePanelExpandablePanels({
                             {title}
                         </h2>
                     </div>
-                    <div className="sp-panel-expanded-body">
-                        {renderPanelContent(title)}
-                    </div>
+                    <div className="sp-panel-expanded-body">{renderPanelContent(title)}</div>
                 </section>
             </div>
-        )
+        );
     }
 
     return (
@@ -112,7 +132,7 @@ function SidePanelExpandablePanels({
                 </button>
             ))}
         </div>
-    )
+    );
 }
 
-export default SidePanelExpandablePanels
+export default SidePanelExpandablePanels;

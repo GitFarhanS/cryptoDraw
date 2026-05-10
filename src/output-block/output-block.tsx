@@ -1,32 +1,32 @@
-import { useId } from 'react'
-import { portRegistryKey } from '../graph/edge-types'
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { serializeBytesToFormat } from '../converter-block/format-bytes'
-import PortHandle from '../port-handle'
+import { useId } from 'react';
+import { portRegistryKey } from '../graph/edge-types';
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
+import { serializeBytesToFormat } from '../converter-block/format-bytes';
+import PortHandle from '../port-handle';
 
 interface Props {
-    draggableToCanvas?: boolean
-    block?: any
-    evaluation?: any
+    draggableToCanvas?: boolean;
+    block?: any;
+    evaluation?: any;
 }
 
 function OutputBlock({ draggableToCanvas = false, block, evaluation }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-output-title`
-    const isCanvas = Boolean(block)
+    const id = useId();
+    const titleId = `${id}-output-title`;
+    const isCanvas = Boolean(block);
 
-    const inKey = isCanvas ? portRegistryKey(block.id, 'in') : ''
-    const inBytes = isCanvas ? evaluation?.portBytes?.get(inKey) : undefined
-    const inFormat = isCanvas ? evaluation?.portFormats?.get(inKey) ?? 'hex' : 'hex'
-    const inBitLength = isCanvas ? evaluation?.portBitLengths?.get(inKey) : undefined
-    const hasWiredInput = inBytes !== undefined
-    let displayValue = ''
+    const inKey = isCanvas ? portRegistryKey(block.id, 'in') : '';
+    const inBytes = isCanvas ? evaluation?.portBytes?.get(inKey) : undefined;
+    const inFormat = isCanvas ? (evaluation?.portFormats?.get(inKey) ?? 'hex') : 'hex';
+    const inBitLength = isCanvas ? evaluation?.portBitLengths?.get(inKey) : undefined;
+    const hasWiredInput = inBytes !== undefined;
+    let displayValue = '';
     if (hasWiredInput) {
         if (inFormat === 'binary') {
-            const full = serializeBytesToFormat('binary', inBytes)
-            displayValue = full.slice(0, inBitLength ?? full.length)
+            const full = serializeBytesToFormat('binary', inBytes);
+            displayValue = full.slice(0, inBitLength ?? full.length);
         } else {
-            displayValue = serializeBytesToFormat(inFormat, inBytes)
+            displayValue = serializeBytesToFormat(inFormat, inBytes);
         }
     }
 
@@ -36,17 +36,19 @@ function OutputBlock({ draggableToCanvas = false, block, evaluation }: Readonly<
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
             className={sectionClass}
             aria-labelledby={titleId}
             draggable={draggableToCanvas}
-            onDragStart={draggableToCanvas ? (event) => attachPaletteDragData(event, 'output') : undefined}
+            onDragStart={
+                draggableToCanvas ? (event) => attachPaletteDragData(event, 'output') : undefined
+            }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -75,12 +77,14 @@ function OutputBlock({ draggableToCanvas = false, block, evaluation }: Readonly<
                         aria-label="Output from wiring"
                     />
                     {hasWiredInput ? null : (
-                        <p className="input-block-hint">No wired input yet. Connect a source block to in.</p>
+                        <p className="input-block-hint">
+                            No wired input yet. Connect a source block to in.
+                        </p>
                     )}
                 </>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default OutputBlock
+export default OutputBlock;

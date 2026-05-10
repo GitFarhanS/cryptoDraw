@@ -5,31 +5,31 @@ import {
     SBOX_BLOCK_TYPES,
     STREAM_BLOCK_TYPES,
     OUTPUT_BLOCK_TYPES,
-} from '../input-blocks/drag-constants'
-import type { GraphEdge, PlacedBlockRecord } from '../types/graph'
+} from '../input-blocks/drag-constants';
+import type { GraphEdge, PlacedBlockRecord } from '../types/graph';
 
 export function portRegistryKey(blockId: string, portKey: string) {
-    return `${blockId}\0${portKey}`
+    return `${blockId}\0${portKey}`;
 }
 
 export function parseEdgeEndpointRef(ref: string) {
-    const i = ref.indexOf('\0')
+    const i = ref.indexOf('\0');
     if (i === -1) {
-        return null
+        return null;
     }
-    return { blockId: ref.slice(0, i), portKey: ref.slice(i + 1) }
+    return { blockId: ref.slice(0, i), portKey: ref.slice(i + 1) };
 }
 
 export function outputPortKeysForBlock(
     blockType: string,
-    params: { blockCount?: number; joinCount?: number } = {},
+    params: { blockCount?: number; joinCount?: number } = {}
 ) {
     if (INPUT_BLOCK_TYPES.includes(blockType as (typeof INPUT_BLOCK_TYPES)[number])) {
-        return ['out']
+        return ['out'];
     }
     if (blockType === 'splitIntoLots') {
-        const n = clampInt(params.blockCount, 1, 24, 4)
-        return Array.from({ length: n }, (_, i) => `out:${i}`)
+        const n = clampInt(params.blockCount, 1, 24, 4);
+        return Array.from({ length: n }, (_, i) => `out:${i}`);
     }
     if (
         CONVERTER_BLOCK_TYPES.includes(blockType as (typeof CONVERTER_BLOCK_TYPES)[number]) ||
@@ -39,27 +39,27 @@ export function outputPortKeysForBlock(
         OUTPUT_BLOCK_TYPES.includes(blockType as (typeof OUTPUT_BLOCK_TYPES)[number])
     ) {
         if (blockType === 'output') {
-            return []
+            return [];
         }
-        return ['out']
+        return ['out'];
     }
-    return ['out']
+    return ['out'];
 }
 
 export function inputPortKeysForBlock(
     blockType: string,
-    params: { blockCount?: number; joinCount?: number } = {},
+    params: { blockCount?: number; joinCount?: number } = {}
 ) {
     if (INPUT_BLOCK_TYPES.includes(blockType as (typeof INPUT_BLOCK_TYPES)[number])) {
-        return []
+        return [];
     }
     if (
-        blockType === 'splitIntoLots'
-        || blockType === 'formatConvert'
-        || blockType === 'permuteReorder'
-        || blockType === 'output'
+        blockType === 'splitIntoLots' ||
+        blockType === 'formatConvert' ||
+        blockType === 'permuteReorder' ||
+        blockType === 'output'
     ) {
-        return ['in']
+        return ['in'];
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
         return ['in']
@@ -78,87 +78,90 @@ export function inputPortKeysForBlock(
         return ['in']
     }
     if (blockType === 'joinLots') {
-        const k = clampInt(params.joinCount, 1, 24, 2)
-        return Array.from({ length: k }, (_, i) => `in:${i}`)
+        const k = clampInt(params.joinCount, 1, 24, 2);
+        return Array.from({ length: k }, (_, i) => `in:${i}`);
     }
     if (OPERATION_BLOCK_TYPES.includes(blockType as (typeof OPERATION_BLOCK_TYPES)[number])) {
-        return ['in:a', 'in:b']
+        return ['in:a', 'in:b'];
     }
-    return []
+    return [];
 }
 
 function clampInt(value: unknown, min: number, max: number, fallback: number) {
-    const n = typeof value === 'number' ? value : Number(value)
+    const n = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(n)) {
-        return fallback
+        return fallback;
     }
-    return Math.min(max, Math.max(min, Math.floor(n)))
+    return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
-export function wouldCreateCycle(edges: GraphEdge[], proposed: { from: { blockId: string }; to: { blockId: string } }) {
-    const { from, to } = proposed
+export function wouldCreateCycle(
+    edges: GraphEdge[],
+    proposed: { from: { blockId: string }; to: { blockId: string } }
+) {
+    const { from, to } = proposed;
     if (from.blockId === to.blockId) {
-        return true
+        return true;
     }
 
-    const adj = new Map<string, string[]>()
+    const adj = new Map<string, string[]>();
     for (const e of edges) {
-        const a = e.from.blockId
-        const b = e.to.blockId
+        const a = e.from.blockId;
+        const b = e.to.blockId;
         if (!adj.has(a)) {
-            adj.set(a, [])
+            adj.set(a, []);
         }
-        adj.get(a)!.push(b)
+        adj.get(a)!.push(b);
     }
 
-    const start = to.blockId
-    const target = from.blockId
+    const start = to.blockId;
+    const target = from.blockId;
 
-    const stack = [start]
-    const seen = new Set(stack)
+    const stack = [start];
+    const seen = new Set(stack);
     while (stack.length) {
-        const u = stack.pop()
+        const u = stack.pop();
         if (u === target) {
-            return true
+            return true;
         }
-        const next = adj.get(u ?? '')
+        const next = adj.get(u ?? '');
         if (!next) {
-            continue
+            continue;
         }
         for (const v of next) {
             if (!seen.has(v)) {
-                seen.add(v)
-                stack.push(v)
+                seen.add(v);
+                stack.push(v);
             }
         }
     }
 
-    return false
+    return false;
 }
 
 export function upsertEdgeForInputPort(edges: GraphEdge[], newEdge: GraphEdge) {
     const filtered = edges.filter(
-        (e) => !(e.to.blockId === newEdge.to.blockId && e.to.portKey === newEdge.to.portKey),
-    )
-    return [...filtered, newEdge]
+        (e) => !(e.to.blockId === newEdge.to.blockId && e.to.portKey === newEdge.to.portKey)
+    );
+    return [...filtered, newEdge];
 }
 
 export function isEdgeValidForBlocks(
     byId: Map<string, Pick<PlacedBlockRecord, 'type' | 'blockCount' | 'joinCount'>>,
-    edge: GraphEdge,
+    edge: GraphEdge
 ) {
-    const fromBlock = byId.get(edge.from.blockId)
-    const toBlock = byId.get(edge.to.blockId)
+    const fromBlock = byId.get(edge.from.blockId);
+    const toBlock = byId.get(edge.to.blockId);
     if (!fromBlock || !toBlock) {
-        return false
+        return false;
     }
     const paramsFor = (b: Pick<PlacedBlockRecord, 'blockCount' | 'joinCount'>) => ({
         blockCount: b.blockCount,
         joinCount: b.joinCount,
-    })
-    const outPorts = outputPortKeysForBlock(fromBlock.type, paramsFor(fromBlock))
-    const inPorts = inputPortKeysForBlock(toBlock.type, paramsFor(toBlock))
-    return outPorts.includes(edge.from.portKey) && inPorts.includes(edge.to.portKey)
+    });
+    const outPorts = outputPortKeysForBlock(fromBlock.type, paramsFor(fromBlock));
+    const inPorts = inputPortKeysForBlock(toBlock.type, paramsFor(toBlock));
+    return outPorts.includes(edge.from.portKey) && inPorts.includes(edge.to.portKey);
 }
 
-export { type GraphEdge } from '../types/graph'
+export { type GraphEdge } from '../types/graph';

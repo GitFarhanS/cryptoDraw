@@ -1,17 +1,17 @@
-import { attachPaletteDragData } from '../input-blocks/palette-drag'
-import { portRegistryKey } from '../graph/edge-types'
-import { BYTE_FORMATS, serializeBytesToFormat } from '../converter-block/format-bytes'
-import PortHandle from '../port-handle'
-import { useId } from 'react'
+import { attachPaletteDragData } from '../input-blocks/palette-drag';
+import { portRegistryKey } from '../graph/edge-types';
+import { BYTE_FORMATS, serializeBytesToFormat } from '../converter-block/format-bytes';
+import PortHandle from '../port-handle';
+import { useId } from 'react';
 
 interface Props {
-    blockType: string
-    title: string
-    hint?: string
-    draggableToCanvas?: boolean
-    block?: any
-    onBlockPatch?: (patch: any) => void
-    evaluation?: any
+    blockType: string;
+    title: string;
+    hint?: string;
+    draggableToCanvas?: boolean;
+    block?: any;
+    onBlockPatch?: (patch: any) => void;
+    evaluation?: any;
 }
 
 function OperationBlock({
@@ -23,35 +23,35 @@ function OperationBlock({
     onBlockPatch,
     evaluation,
 }: Readonly<Props>) {
-    const id = useId()
-    const titleId = `${id}-op-title`
-    const isCanvas = Boolean(block)
+    const id = useId();
+    const titleId = `${id}-op-title`;
+    const isCanvas = Boolean(block);
 
-    const outKey = isCanvas ? portRegistryKey(block.id, 'out') : ''
-    const inAKey = isCanvas ? portRegistryKey(block.id, 'in:a') : ''
-    const inBKey = isCanvas ? portRegistryKey(block.id, 'in:b') : ''
-    const outBytes = isCanvas ? evaluation?.portBytes?.get(outKey) : undefined
-    const outBits = isCanvas ? evaluation?.portBitLengths?.get(outKey) : undefined
-    const inFmtA = isCanvas ? evaluation?.portFormats?.get(inAKey) : undefined
-    const inFmtB = isCanvas ? evaluation?.portFormats?.get(inBKey) : undefined
-    const displayMode = isCanvas ? block.opDisplayMode ?? 'auto' : 'auto'
-    const manualFormat = isCanvas ? block.opDisplayFormat ?? 'hex' : 'hex'
-    const shiftMode = isCanvas ? block.opShiftMode ?? 'logical' : 'logical'
-    const supportsShiftMode = blockType === 'opLeftShift' || blockType === 'opRightShift'
-    let autoFormat = inFmtA ?? inFmtB ?? 'hex'
+    const outKey = isCanvas ? portRegistryKey(block.id, 'out') : '';
+    const inAKey = isCanvas ? portRegistryKey(block.id, 'in:a') : '';
+    const inBKey = isCanvas ? portRegistryKey(block.id, 'in:b') : '';
+    const outBytes = isCanvas ? evaluation?.portBytes?.get(outKey) : undefined;
+    const outBits = isCanvas ? evaluation?.portBitLengths?.get(outKey) : undefined;
+    const inFmtA = isCanvas ? evaluation?.portFormats?.get(inAKey) : undefined;
+    const inFmtB = isCanvas ? evaluation?.portFormats?.get(inBKey) : undefined;
+    const displayMode = isCanvas ? (block.opDisplayMode ?? 'auto') : 'auto';
+    const manualFormat = isCanvas ? (block.opDisplayFormat ?? 'hex') : 'hex';
+    const shiftMode = isCanvas ? (block.opShiftMode ?? 'logical') : 'logical';
+    const supportsShiftMode = blockType === 'opLeftShift' || blockType === 'opRightShift';
+    let autoFormat = inFmtA ?? inFmtB ?? 'hex';
     if (inFmtA && inFmtB && inFmtA !== inFmtB) {
-        autoFormat = 'hex'
+        autoFormat = 'hex';
     }
-    const effectiveFormat = displayMode === 'manual' ? manualFormat : autoFormat
-    const interactivePortProps = isCanvas ? { interactive: true } : undefined
+    const effectiveFormat = displayMode === 'manual' ? manualFormat : autoFormat;
+    const interactivePortProps = isCanvas ? { interactive: true } : undefined;
 
-    let resultText = ''
+    let resultText = '';
     if (outBytes !== undefined) {
         if (effectiveFormat === 'binary') {
-            const bits = serializeBytesToFormat('binary', outBytes)
-            resultText = bits.slice(0, outBits ?? bits.length)
+            const bits = serializeBytesToFormat('binary', outBytes);
+            resultText = bits.slice(0, outBits ?? bits.length);
         } else {
-            resultText = serializeBytesToFormat(effectiveFormat, outBytes)
+            resultText = serializeBytesToFormat(effectiveFormat, outBytes);
         }
     }
 
@@ -61,7 +61,7 @@ function OperationBlock({
         draggableToCanvas ? 'input-block--palette-draggable' : '',
     ]
         .filter(Boolean)
-        .join(' ')
+        .join(' ');
 
     return (
         <section
@@ -73,7 +73,7 @@ function OperationBlock({
             }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive notch-ports-row--spread">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -101,14 +101,19 @@ function OperationBlock({
                     <div className="converter-block-row">
                         {supportsShiftMode ? (
                             <div>
-                                <label className="converter-block-label" htmlFor={`${id}-shift-mode`}>
+                                <label
+                                    className="converter-block-label"
+                                    htmlFor={`${id}-shift-mode`}
+                                >
                                     Shift mode
                                 </label>
                                 <select
                                     id={`${id}-shift-mode`}
                                     className="input-block-field"
                                     value={shiftMode}
-                                    onChange={(e) => onBlockPatch?.({ opShiftMode: e.target.value })}
+                                    onChange={(e) =>
+                                        onBlockPatch?.({ opShiftMode: e.target.value })
+                                    }
                                     aria-label="Shift mode"
                                 >
                                     <option value="logical">Logical</option>
@@ -140,7 +145,9 @@ function OperationBlock({
                                 className="input-block-field"
                                 value={manualFormat}
                                 disabled={displayMode !== 'manual'}
-                                onChange={(e) => onBlockPatch?.({ opDisplayFormat: e.target.value })}
+                                onChange={(e) =>
+                                    onBlockPatch?.({ opDisplayFormat: e.target.value })
+                                }
                                 aria-label="Operation display format"
                             >
                                 {BYTE_FORMATS.map((fmt) => (
@@ -162,7 +169,7 @@ function OperationBlock({
                     />
                 </>
             ) : null}
-            {(isCanvas || draggableToCanvas) ? (
+            {isCanvas || draggableToCanvas ? (
                 <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
                     <PortHandle
                         blockId={isCanvas ? block.id : ''}
@@ -173,7 +180,7 @@ function OperationBlock({
                 </div>
             ) : null}
         </section>
-    )
+    );
 }
 
-export default OperationBlock
+export default OperationBlock;
