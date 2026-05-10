@@ -230,12 +230,18 @@ function App() {
         clientX: number;
         clientY: number;
     }>(null);
+    const [edgeContextMenu, setEdgeContextMenu] = useState<null | {
+        edgeId: string;
+        clientX: number;
+        clientY: number;
+    }>(null);
     const [boardContextMenu, setBoardContextMenu] = useState<null | {
         clientX: number;
         clientY: number;
         canvasX: number;
         canvasY: number;
     }>(null);
+    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
     const [wireDrag, setWireDrag] = useState<any>(null);
     const [customFunctions, setCustomFunctions] =
         useState<Array<{ id: string; name: string; payload: string }>>(readStoredCustomFunctions);
@@ -262,6 +268,7 @@ function App() {
     const selectedBlockIdsRef = useRef(selectedBlockIds);
     const edgesRef = useRef(edges);
     const blockContextMenuRef = useRef<HTMLDivElement | null>(null);
+    const edgeContextMenuRef = useRef<HTMLDivElement | null>(null);
     const boardContextMenuRef = useRef<HTMLDivElement | null>(null);
     const blockElementsRef = useRef(new Map<string, HTMLDivElement>());
 
@@ -457,10 +464,10 @@ function App() {
                     return prev.map((block) =>
                         block.id === blockId
                             ? {
-                                ...block,
-                                x: targetX,
-                                y: targetY,
-                            }
+                                  ...block,
+                                  x: targetX,
+                                  y: targetY,
+                              }
                             : block
                     );
                 }
@@ -471,10 +478,10 @@ function App() {
                 return prev.map((block) =>
                     selectedSet.has(block.id)
                         ? {
-                            ...block,
-                            x: block.x + dx,
-                            y: block.y + dy,
-                        }
+                              ...block,
+                              x: block.x + dx,
+                              y: block.y + dy,
+                          }
                         : block
                 );
             });
@@ -496,6 +503,7 @@ function App() {
         // repeated pastes increment as expected. The counter is reset when
         // clipboard content changes via `lastClipboardRef`.
         setBlockContextMenu(null);
+        setEdgeContextMenu(null);
         setBoardContextMenu(null);
     }, []);
 
@@ -513,6 +521,16 @@ function App() {
                 }
                 return [blockId];
             });
+            setSelectedEdgeId(null);
+            closeContextMenus();
+        },
+        [closeContextMenus]
+    );
+
+    const selectEdge = useCallback(
+        (edgeId: string) => {
+            setSelectedEdgeId(edgeId);
+            setSelectedBlockIds([]);
             closeContextMenus();
         },
         [closeContextMenus]
@@ -541,6 +559,30 @@ function App() {
             setBoardContextMenu({ clientX, clientY, canvasX, canvasY });
         },
         [closeContextMenus]
+    );
+
+    const openEdgeContextMenu = useCallback(
+        (edgeId: string, clientX: number, clientY: number) => {
+            setSelectedEdgeId(edgeId);
+            setSelectedBlockIds([]);
+            closeContextMenus();
+            setEdgeContextMenu({ edgeId, clientX, clientY });
+        },
+        [closeContextMenus]
+    );
+
+    const deleteSelectedEdge = useCallback(
+        (edgeId?: string) => {
+            const target = edgeId ?? selectedEdgeId;
+            if (!target) {
+                return;
+            }
+            setEdges((prev) => prev.filter((edge) => edge.id !== target));
+            setSelectedEdgeId(null);
+            closeContextMenus();
+            bumpLayout();
+        },
+        [bumpLayout, closeContextMenus, selectedEdgeId]
     );
 
     const deleteSelectedBlocks = useCallback(
@@ -610,6 +652,52 @@ function App() {
             if (internalNewEdges.length) {
                 setEdges((prev) => [...prev, ...internalNewEdges]);
             }
+            closeContextMenus();
+            bumpLayout();
+        },
+        [bumpLayout, closeContextMenus]
+    );
+
+    const reorderSelectedBlocks = useCallback(
+        (mode: 'front' | 'back' | 'up' | 'down', menuBlockId: string) => {
+            const targetIds = selectedBlockIdsRef.current.includes(menuBlockId)
+                ? selectedBlockIdsRef.current
+                : [menuBlockId];
+            const targetSet = new Set(targetIds);
+
+            setPlacedBlocks((prev) => {
+                if (mode === 'front') {
+                    const picked = prev.filter((block) => targetSet.has(block.id));
+                    const rest = prev.filter((block) => !targetSet.has(block.id));
+                    return [...rest, ...picked];
+                }
+                if (mode === 'back') {
+                    const picked = prev.filter((block) => targetSet.has(block.id));
+                    const rest = prev.filter((block) => !targetSet.has(block.id));
+                    return [...picked, ...rest];
+                }
+
+                const next = [...prev];
+                if (mode === 'up') {
+                    for (let i = next.length - 2; i >= 0; i -= 1) {
+                        if (targetSet.has(next[i].id) && !targetSet.has(next[i + 1].id)) {
+                            const t = next[i];
+                            next[i] = next[i + 1];
+                            next[i + 1] = t;
+                        }
+                    }
+                } else {
+                    for (let i = 1; i < next.length; i += 1) {
+                        if (targetSet.has(next[i].id) && !targetSet.has(next[i - 1].id)) {
+                            const t = next[i];
+                            next[i] = next[i - 1];
+                            next[i - 1] = t;
+                        }
+                    }
+                }
+                return next;
+            });
+
             closeContextMenus();
             bumpLayout();
         },
@@ -716,13 +804,13 @@ function App() {
                 let anchor: PasteAnchor = target
                     ? { x: target.x, y: target.y }
                     : phase === 'center'
-                        ? {
+                      ? {
                             x: (window.scrollX + window.innerWidth / 2) / z,
                             y: (window.scrollY + window.innerHeight / 2) / z,
                         }
-                        : phase === 'top-left'
-                            ? { x: viewport.left, y: viewport.top }
-                            : { x: viewport.left, y: viewport.top + viewport.height / 2 };
+                      : phase === 'top-left'
+                        ? { x: viewport.left, y: viewport.top }
+                        : { x: viewport.left, y: viewport.top + viewport.height / 2 };
 
                 // Compute grid position
                 let n = pasteOffsetCounterRef.current;
@@ -945,6 +1033,11 @@ function App() {
             const cmd = event.ctrlKey || event.metaKey;
 
             if ((event.key === 'Delete' || event.key === 'Backspace') && !cmd) {
+                if (selectedEdgeId) {
+                    deleteSelectedEdge(selectedEdgeId);
+                    event.preventDefault();
+                    return;
+                }
                 // delete selected
                 const sel = selectedBlockIdsRef.current;
                 if (!sel.length) return;
@@ -968,7 +1061,13 @@ function App() {
 
         globalThis.addEventListener('keydown', onKeyDown);
         return () => globalThis.removeEventListener('keydown', onKeyDown);
-    }, [copySelectedBlocks, pasteFromClipboard, deleteSelectedBlocks]);
+    }, [
+        copySelectedBlocks,
+        pasteFromClipboard,
+        deleteSelectedBlocks,
+        deleteSelectedEdge,
+        selectedEdgeId,
+    ]);
 
     const applySelectionFromMarquee = useCallback(() => {
         const state = selectionStateRef.current;
@@ -1052,12 +1151,16 @@ function App() {
     }, [edges]);
 
     useEffect(() => {
-        if (!activeBlockContextMenu && !boardContextMenu) {
+        if (!activeBlockContextMenu && !edgeContextMenu && !boardContextMenu) {
             return undefined;
         }
 
         if (activeBlockContextMenu) {
             blockContextMenuRef.current
+                ?.querySelector<HTMLButtonElement>('.context-menu__action')
+                ?.focus();
+        } else if (edgeContextMenu) {
+            edgeContextMenuRef.current
                 ?.querySelector<HTMLButtonElement>('.context-menu__action')
                 ?.focus();
         } else {
@@ -1085,7 +1188,7 @@ function App() {
             globalThis.window.removeEventListener('pointerdown', onPointerDown);
             globalThis.window.removeEventListener('keydown', onKeyDown);
         };
-    }, [activeBlockContextMenu, boardContextMenu, closeContextMenus]);
+    }, [activeBlockContextMenu, edgeContextMenu, boardContextMenu, closeContextMenus]);
 
     useEffect(() => {
         if (!boardContextMenu) {
@@ -1518,6 +1621,9 @@ function App() {
         if (event.target instanceof Element && event.target.closest('.canvas-placed-block')) {
             return;
         }
+        if (event.target instanceof Element && event.target.closest('.canvas-wires__edge')) {
+            return;
+        }
 
         event.preventDefault();
         const z = zoomRef.current;
@@ -1687,6 +1793,9 @@ function App() {
                             rubberBand={wireDrag}
                             layoutEpoch={layoutEpoch}
                             zoom={zoom}
+                            selectedEdgeId={selectedEdgeId}
+                            onSelectEdge={selectEdge}
+                            onOpenEdgeContextMenu={openEdgeContextMenu}
                         />
                         {placedBlocks.map((block) => (
                             <CanvasPlacedBlock
@@ -1748,9 +1857,65 @@ function App() {
                     <button
                         type="button"
                         className="context-menu__action"
+                        onClick={() =>
+                            reorderSelectedBlocks('front', activeBlockContextMenu.blockId)
+                        }
+                    >
+                        Bring to front
+                    </button>
+                    <button
+                        type="button"
+                        className="context-menu__action"
+                        onClick={() =>
+                            reorderSelectedBlocks('back', activeBlockContextMenu.blockId)
+                        }
+                    >
+                        Put to back
+                    </button>
+                    <button
+                        type="button"
+                        className="context-menu__action"
+                        onClick={() => reorderSelectedBlocks('up', activeBlockContextMenu.blockId)}
+                    >
+                        Move up a layer
+                    </button>
+                    <button
+                        type="button"
+                        className="context-menu__action"
+                        onClick={() =>
+                            reorderSelectedBlocks('down', activeBlockContextMenu.blockId)
+                        }
+                    >
+                        Move down a layer
+                    </button>
+                    <button
+                        type="button"
+                        className="context-menu__action"
                         onClick={() => deleteSelectedBlocks(activeBlockContextMenu.blockId)}
                     >
                         Delete
+                    </button>
+                </div>
+            ) : null}
+            {edgeContextMenu ? (
+                <div
+                    ref={edgeContextMenuRef}
+                    className="context-menu"
+                    role="menu"
+                    tabIndex={-1}
+                    aria-label="Edge actions"
+                    style={{
+                        left: edgeContextMenu.clientX,
+                        top: edgeContextMenu.clientY,
+                    }}
+                    onKeyDown={handleBlockContextMenuKeyDown}
+                >
+                    <button
+                        type="button"
+                        className="context-menu__action"
+                        onClick={() => deleteSelectedEdge(edgeContextMenu.edgeId)}
+                    >
+                        Delete wire
                     </button>
                 </div>
             ) : null}

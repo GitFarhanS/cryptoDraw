@@ -1165,6 +1165,13 @@ body[data-theme='solarized-dark'] .theme-select {
     stroke: var(--wire);
     stroke-width: 2;
     fill: none;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.canvas-wires__edge.is-selected {
+    stroke-width: 4;
+    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--wire), white 45%));
 }
 
 .canvas-wires__rubber {

@@ -55,7 +55,7 @@ export function inputPortKeysForBlock(
         return ['in'];
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
-        return ['in']
+        return ['in'];
     }
     if (blockType === 'joinLots') {
         const k = clampInt(params.joinCount, 1, 24, 2);
