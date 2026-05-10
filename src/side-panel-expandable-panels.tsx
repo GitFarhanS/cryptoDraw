@@ -15,8 +15,8 @@ const PANELS = [
     'S-Boxes',
     'Stream',
     'Output',
-    'Settings',
     'Templates',
+    'Settings',
 ] as const;
 
 const PANEL_FLOW_DENOM = Math.max(1, PANELS.length - 1);
