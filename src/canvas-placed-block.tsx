@@ -11,6 +11,7 @@ import HexBlock from './input-blocks/hex-block'
 import OperationBlock from './operations-block/operation-block'
 import { OPERATION_DEFINITIONS } from './operations-block/operation-definitions'
 import OutputBlock from './output-block/output-block'
+import SubBytesBlock from './sbox-block/sub-bytes-block'
 
 const OPERATION_BLOCKS_BY_TYPE = Object.fromEntries(
     OPERATION_DEFINITIONS.map(({ blockType, title, hint }) => [
@@ -29,6 +30,7 @@ const BLOCK_BY_TYPE: Record<string, any> = {
     splitIntoLots: SplitIntoLotsBlock,
     joinLots: JoinLotsBlock,
     formatConvert: FormatConvertBlock,
+    subBytes: SubBytesBlock,
     output: OutputBlock,
     ...OPERATION_BLOCKS_BY_TYPE,
 }

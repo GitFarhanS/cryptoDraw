@@ -4,6 +4,8 @@ export const INPUT_BLOCK_TYPES = ['binary', 'hex', 'decimal', 'ascii'] as const
 
 export const CONVERTER_BLOCK_TYPES = ['splitIntoLots', 'joinLots', 'formatConvert'] as const
 
+export const SBOX_BLOCK_TYPES = ['subBytes'] as const
+
 export const OPERATION_BLOCK_TYPES = [
   'opXor',
   'opLeftShift',
@@ -20,6 +22,7 @@ export const OUTPUT_BLOCK_TYPES = ['output'] as const
 export const PLACED_BLOCK_TYPES = [
   ...INPUT_BLOCK_TYPES,
   ...CONVERTER_BLOCK_TYPES,
+  ...SBOX_BLOCK_TYPES,
   ...OPERATION_BLOCK_TYPES,
   ...OUTPUT_BLOCK_TYPES,
 ] as const
