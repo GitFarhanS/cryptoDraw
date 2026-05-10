@@ -51,7 +51,12 @@ export function inputPortKeysForBlock(
     if (INPUT_BLOCK_TYPES.includes(blockType as (typeof INPUT_BLOCK_TYPES)[number])) {
         return []
     }
-    if (blockType === 'splitIntoLots' || blockType === 'formatConvert' || blockType === 'output') {
+    if (
+        blockType === 'splitIntoLots'
+        || blockType === 'formatConvert'
+        || blockType === 'permuteReorder'
+        || blockType === 'output'
+    ) {
         return ['in']
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {

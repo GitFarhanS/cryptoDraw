@@ -3,6 +3,7 @@ import type { KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent } fro
 import { useCanvasGraph } from './graph/canvas-graph-context'
 import FormatConvertBlock from './converter-block/format-convert-block'
 import JoinLotsBlock from './converter-block/join-lots-block'
+import PermuteReorderBlock from './converter-block/permute-reorder-block'
 import SplitIntoLotsBlock from './converter-block/split-into-lots-block'
 import AsciiBlock from './input-blocks/ascii-block'
 import BinaryBlock from './input-blocks/binary-block'
@@ -30,6 +31,7 @@ const BLOCK_BY_TYPE: Record<string, any> = {
     splitIntoLots: SplitIntoLotsBlock,
     joinLots: JoinLotsBlock,
     formatConvert: FormatConvertBlock,
+    permuteReorder: PermuteReorderBlock,
     subBytes: SubBytesBlock,
     output: OutputBlock,
     ...OPERATION_BLOCKS_BY_TYPE,

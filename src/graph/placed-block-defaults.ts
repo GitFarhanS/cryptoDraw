@@ -34,6 +34,14 @@ export function createPlacedBlock(type: string, x: number, y: number): PlacedBlo
             fcOutputFormat: 'ascii',
         }
     }
+    if (type === 'permuteReorder') {
+        return {
+            ...base,
+            permuteMode: 'bytes',
+            permutePreset: 'custom',
+            permuteOrder: '0, 1, 2, 3',
+        }
+    }
     if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {
         return {
             ...base,
