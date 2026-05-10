@@ -48,7 +48,10 @@ function BinaryBlock({ draggableToCanvas = false, block, onBlockPatch }: Readonl
             <textarea
                 className="input-block-field input-block-field--mono"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => {
+                    const filtered = e.target.value.replaceAll(/[^01]/g, "");
+                    setValue(filtered);
+                }}
                 placeholder="e.g. 010101"
                 rows={3}
                 aria-label="Binary text input"

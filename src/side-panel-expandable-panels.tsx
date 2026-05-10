@@ -5,8 +5,9 @@ import FlowchartIoPanel from './flowchart-io-panel'
 import InputBlocks from './input-blocks/input-blocks'
 import OperationsBlocks from './operations-block/operations-blocks'
 import OutputBlock from './output-block/output-block'
+import SboxBlocks from './sbox-block/sbox-blocks'
 
-const PANELS = ['Input', 'Converter', 'Operations', 'Output', 'Flowchart', 'Templates']
+const PANELS = ['Input', 'Converter', 'Operations', 'S-Boxes', 'Output', 'Flowchart', 'Templates']
 const VISUAL_TONE_COUNT = 5
 
 interface Props {
@@ -38,6 +39,8 @@ function SidePanelExpandablePanels({
                 return <ConverterBlocks />
             case 'Operations':
                 return <OperationsBlocks />
+            case 'S-Boxes':
+                return <SboxBlocks />
             case 'Flowchart':
                 return (
                     <FlowchartIoPanel

@@ -105,6 +105,19 @@ describe('evaluateGraph data transfer', () => {
         expect(serializeBytesToFormat('hex', bytes!)).toBe('ff')
     })
 
+    it('subbytes maps each input byte through the AES s-box', () => {
+        const blocks = [
+            { id: 'src', type: 'hex', x: 0, y: 0, text: '53' },
+            { id: 'sub', type: 'subBytes', x: 0, y: 0 },
+        ]
+        const edges = [edge('e1', 'src', 'out', 'sub', 'in')]
+        const result = evaluateGraph(blocks as any, edges as any)
+        const bytes = result.portBytes.get('sub\0out')
+        expect(bytes).toBeDefined()
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('ed')
+        expect(result.portFormats.get('sub\0out')).toBe('hex')
+    })
+
     it('operation output format auto-detects same input formats', () => {
         const blocks = [
             { id: 'a', type: 'binary', x: 0, y: 0, text: '00001111' },

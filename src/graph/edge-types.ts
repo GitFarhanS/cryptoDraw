@@ -2,6 +2,7 @@ import {
     CONVERTER_BLOCK_TYPES,
     INPUT_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
+    SBOX_BLOCK_TYPES,
     OUTPUT_BLOCK_TYPES,
 } from '../input-blocks/drag-constants'
 import type { GraphEdge, PlacedBlockRecord } from '../types/graph'
@@ -31,6 +32,7 @@ export function outputPortKeysForBlock(
     }
     if (
         CONVERTER_BLOCK_TYPES.includes(blockType as (typeof CONVERTER_BLOCK_TYPES)[number]) ||
+        SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number]) ||
         OPERATION_BLOCK_TYPES.includes(blockType as (typeof OPERATION_BLOCK_TYPES)[number]) ||
         OUTPUT_BLOCK_TYPES.includes(blockType as (typeof OUTPUT_BLOCK_TYPES)[number])
     ) {
@@ -50,6 +52,9 @@ export function inputPortKeysForBlock(
         return []
     }
     if (blockType === 'splitIntoLots' || blockType === 'formatConvert' || blockType === 'output') {
+        return ['in']
+    }
+    if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
         return ['in']
     }
     if (blockType === 'joinLots') {

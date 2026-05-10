@@ -38,9 +38,12 @@ function OperationBlock({
     const manualFormat = isCanvas ? block.opDisplayFormat ?? 'hex' : 'hex'
     const shiftMode = isCanvas ? block.opShiftMode ?? 'logical' : 'logical'
     const supportsShiftMode = blockType === 'opLeftShift' || blockType === 'opRightShift'
-    const autoFormat =
-        inFmtA && inFmtB ? (inFmtA === inFmtB ? inFmtA : 'hex') : (inFmtA ?? inFmtB ?? 'hex')
+    let autoFormat = inFmtA ?? inFmtB ?? 'hex'
+    if (inFmtA && inFmtB && inFmtA !== inFmtB) {
+        autoFormat = 'hex'
+    }
     const effectiveFormat = displayMode === 'manual' ? manualFormat : autoFormat
+    const interactivePortProps = isCanvas ? { interactive: true } : undefined
 
     let resultText = ''
     if (outBytes !== undefined) {
@@ -70,10 +73,20 @@ function OperationBlock({
             }
             title={draggableToCanvas ? 'Drag onto the grid to place a copy' : undefined}
         >
-            {isCanvas ? (
+            {(isCanvas || draggableToCanvas) ? (
                 <div className="notch-ports-row notch-ports-row--top notch-ports-row--interactive notch-ports-row--spread">
-                    <PortHandle blockId={block.id} portKey="in:a" kind="input" interactive />
-                    <PortHandle blockId={block.id} portKey="in:b" kind="input" interactive />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="in:a"
+                        kind="input"
+                        {...interactivePortProps}
+                    />
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="in:b"
+                        kind="input"
+                        {...interactivePortProps}
+                    />
                 </div>
             ) : null}
             <h3 className="input-block-title" id={titleId}>
@@ -147,10 +160,17 @@ function OperationBlock({
                         spellCheck={false}
                         aria-label="Operation result"
                     />
-                    <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
-                        <PortHandle blockId={block.id} portKey="out" kind="output" interactive />
-                    </div>
                 </>
+            ) : null}
+            {(isCanvas || draggableToCanvas) ? (
+                <div className="notch-ports-row notch-ports-row--bottom notch-ports-row--interactive">
+                    <PortHandle
+                        blockId={isCanvas ? block.id : ''}
+                        portKey="out"
+                        kind="output"
+                        {...interactivePortProps}
+                    />
+                </div>
             ) : null}
         </section>
     )

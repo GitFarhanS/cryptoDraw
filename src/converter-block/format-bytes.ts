@@ -70,7 +70,7 @@ function parseDecimalBytes(str: string) {
 }
 
 function bytesToDecimal(bytes: Uint8Array) {
-    return Array.from(bytes, String).join(' ')
+    return Array.from(bytes, String).join(', ')
 }
 
 export const BYTE_FORMATS = ['binary', 'ascii', 'hex', 'decimal'] as const
