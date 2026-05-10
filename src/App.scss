@@ -99,10 +99,11 @@ body[data-theme='high-contrast'] {
     --app-muted: rgba(255, 255, 255, 0.92);
     --panel-border: #ffffff;
     --panel-border-strong: #ffffff;
-    --panel-surface: #000000;
-    --panel-surface-strong: #000000;
-    --panel-surface-soft: rgba(255, 255, 255, 0.08);
-    --panel-hover: #1c1c1c;
+    /* Drawer / chrome: stepped neutrals so panels aren’t one flat black plane */
+    --panel-surface: #080808;
+    --panel-surface-strong: #121212;
+    --panel-surface-soft: rgba(255, 255, 255, 0.1);
+    --panel-hover: #1e1e1e;
     --shadow-soft: 0 0 0 transparent;
     --shadow-panel: 0 0 0 transparent;
     --shadow-drawer: 0 0 0 transparent;
@@ -114,31 +115,49 @@ body[data-theme='high-contrast'] {
     --field-bg: #000000;
     --field-border: #ffffff;
     --field-placeholder: rgba(255, 255, 255, 0.75);
-    --block-surface: #000000;
-    --block-surface-strong: #000000;
-    --chip-bg: #000000;
+    --block-surface: #080808;
+    --block-surface-strong: #101010;
+    --chip-bg: #080808;
     --chip-border: #ffffff;
     --chip-fg: #ffffff;
-    --tone-0-bg: #000000;
-    --tone-0-hover: #1a1a1a;
+    /*
+      Side panel flow mixes tone-0 → tone-4; identical blacks collapsed that ramp.
+      Use a neutral gray ladder plus WCAG-style outline hues (no blue panel wash).
+    */
+    --tone-0-bg: #0c0c0c;
+    --tone-0-hover: #161616;
     --tone-0-shadow: inset 0 0 0 2px #ffffff;
-    --tone-1-bg: #000000;
-    --tone-1-hover: #1a1a1a;
+    --tone-1-bg: #161616;
+    --tone-1-hover: #202020;
     --tone-1-shadow: inset 0 0 0 2px #ffff00;
-    --tone-2-bg: #000000;
-    --tone-2-hover: #1a1a1a;
-    --tone-2-shadow: inset 0 0 0 2px #00ffff;
-    --tone-3-bg: #000000;
-    --tone-3-hover: #1a1a1a;
+    --tone-2-bg: #222222;
+    --tone-2-hover: #2c2c2c;
+    --tone-2-shadow: inset 0 0 0 2px #ffffff;
+    --tone-3-bg: #2e2e2e;
+    --tone-3-hover: #383838;
     --tone-3-shadow: inset 0 0 0 2px #ff00ff;
-    --tone-4-bg: #000000;
-    --tone-4-hover: #1a1a1a;
-    --tone-4-shadow: inset 0 0 0 2px #ffffff;
+    --tone-4-bg: #3b3b3b;
+    --tone-4-hover: #454545;
+    --tone-4-shadow: inset 0 0 0 2px #ffff00;
     --tone-strong-fg: #ffffff;
     --tone-strong-chevron: rgba(255, 255, 255, 0.92);
     --tone-strong-border: #ffffff;
     --tone-strong-placeholder: rgba(255, 255, 255, 0.92);
     color-scheme: dark;
+}
+
+body[data-theme='high-contrast'] .sp-panel-expanded-body {
+    background: #050505;
+}
+
+body[data-theme='high-contrast'] .sp-panel-expanded-close {
+    border-color: #ffffff;
+    background: #000000;
+    color: #ffffff;
+}
+
+body[data-theme='high-contrast'] .sp-panel-expanded-close:hover {
+    background: #1a1a1a;
 }
 
 body[data-theme='sepia'] {
