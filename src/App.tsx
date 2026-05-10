@@ -47,7 +47,7 @@ const MIN_MARQUEE_SIZE = 4;
 const PASTE_STEP = 48;
 const PASTE_WRAP = 6;
 const SNAP_GRID_SIZE = 16;
-const MAX_BLOCKS = 256;
+const MAX_BLOCKS = 2048;
 type PasteAnchor = { x: number; y: number };
 const THEMES = [
     { value: 'system', label: 'System' },
@@ -376,7 +376,7 @@ function App() {
     const canAddBlocks = useCallback(
         (incomingCount: number) => {
             if (placedBlocksRef.current.length + incomingCount > MAX_BLOCKS) {
-                showToast('No more blocks can be pasted or dragged (max 256).', 'error');
+                showToast(`No more blocks can be pasted or dragged (max ${MAX_BLOCKS}).`, 'error');
                 return false;
             }
             return true;
@@ -457,10 +457,10 @@ function App() {
                     return prev.map((block) =>
                         block.id === blockId
                             ? {
-                                  ...block,
-                                  x: targetX,
-                                  y: targetY,
-                              }
+                                ...block,
+                                x: targetX,
+                                y: targetY,
+                            }
                             : block
                     );
                 }
@@ -471,10 +471,10 @@ function App() {
                 return prev.map((block) =>
                     selectedSet.has(block.id)
                         ? {
-                              ...block,
-                              x: block.x + dx,
-                              y: block.y + dy,
-                          }
+                            ...block,
+                            x: block.x + dx,
+                            y: block.y + dy,
+                        }
                         : block
                 );
             });
@@ -716,13 +716,13 @@ function App() {
                 let anchor: PasteAnchor = target
                     ? { x: target.x, y: target.y }
                     : phase === 'center'
-                      ? {
+                        ? {
                             x: (window.scrollX + window.innerWidth / 2) / z,
                             y: (window.scrollY + window.innerHeight / 2) / z,
                         }
-                      : phase === 'top-left'
-                        ? { x: viewport.left, y: viewport.top }
-                        : { x: viewport.left, y: viewport.top + viewport.height / 2 };
+                        : phase === 'top-left'
+                            ? { x: viewport.left, y: viewport.top }
+                            : { x: viewport.left, y: viewport.top + viewport.height / 2 };
 
                 // Compute grid position
                 let n = pasteOffsetCounterRef.current;
