@@ -1,8 +1,8 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { CUSTOM_FUNCTION_DRAG_MIME } from './input-blocks/drag-constants';
 
 interface Props {
-    onExportFlowchart: () => string;
+    exportValue: string;
     onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
     snapToGrid: boolean;
@@ -17,7 +17,7 @@ interface Props {
 }
 
 function FlowchartIoPanel({
-    onExportFlowchart,
+    exportValue,
     onImportFlowchart,
     onClearFlowchart,
     snapToGrid,
@@ -40,15 +40,17 @@ function FlowchartIoPanel({
     const [customFunctionShareText, setCustomFunctionShareText] = useState('');
 
     const exportFlowchart = () => {
-        try {
-            const base64 = onExportFlowchart();
-            setDialog({ mode: 'export', value: base64 });
-            setCopyConfirmed(false);
-            onToast('Base64 flowchart text generated.', 'success');
-        } catch {
-            onToast('Could not generate Base64 flowchart text.', 'error');
-        }
+        setDialog({ mode: 'export', value: exportValue });
+        setCopyConfirmed(false);
+        onToast('Base64 flowchart text generated.', 'success');
     };
+
+    useEffect(() => {
+        if (dialog?.mode !== 'export') {
+            return;
+        }
+        setDialog((prev) => (prev ? { ...prev, value: exportValue } : prev));
+    }, [dialog?.mode, exportValue]);
 
     const openImportDialog = () => {
         setDialog({ mode: 'import', value: '' });

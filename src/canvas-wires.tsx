@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { bezierPathD } from './graph/bezier-path';
 import { portRegistryKey } from './graph/edge-types';
 import type { WireDragState } from './graph/canvas-graph-context';
@@ -6,6 +7,8 @@ import type { GraphEdge } from './graph/edge-types';
 
 interface Props {
     edges: GraphEdge[];
+    selectedEdgeIds: string[];
+    onSelectEdge: (edgeId: string, additive: boolean) => void;
     anchorsRef: React.RefObject<Map<string, HTMLElement>>;
     canvasRef: React.RefObject<HTMLElement | null>;
     rubberBand: Pick<WireDragState, 'fromBlockId' | 'fromPortKey' | 'clientX' | 'clientY'> | null;
@@ -15,6 +18,8 @@ interface Props {
 
 function CanvasWires({
     edges,
+    selectedEdgeIds,
+    onSelectEdge,
     anchorsRef,
     canvasRef,
     rubberBand,
@@ -84,10 +89,15 @@ function CanvasWires({
             {geometry.paths.map(({ edge, d }) => (
                 <path
                     key={edge.id}
-                    className="canvas-wires__edge"
+                    className={`canvas-wires__edge ${selectedEdgeIds.includes(edge.id) ? 'is-selected' : ''
+                        }`}
                     d={d}
                     fill="none"
                     data-edge-id={edge.id}
+                    onPointerDown={(event: ReactPointerEvent<SVGPathElement>) => {
+                        event.stopPropagation();
+                        onSelectEdge(edge.id, event.shiftKey);
+                    }}
                 />
             ))}
             {geometry.rubberPath ? (
