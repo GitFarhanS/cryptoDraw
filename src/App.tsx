@@ -4,7 +4,6 @@ import type {
     MouseEvent as ReactMouseEvent,
     PointerEvent as ReactPointerEvent,
 } from 'react';
-import { flushSync } from 'react-dom';
 import './App.scss';
 import CanvasPlacedBlock from './canvas-placed-block';
 import CanvasWires from './canvas-wires';
@@ -32,6 +31,13 @@ import { createPlacedBlock } from './graph/placed-block-defaults';
 import MiniMap from './mini-map';
 import SidePanel from './side-panel';
 import SidePanelExpandablePanels from './side-panel-expandable-panels';
+import {
+    deleteCanvasById,
+    getAllCanvases,
+    getCanvasById,
+    saveCanvas,
+    type CanvasRecord,
+} from './canvas-store';
 
 const CANVAS_SIZE = 8000;
 const MINIMAP_SIZE = 180;
@@ -40,6 +46,7 @@ const MAX_ZOOM = 3;
 const ZOOM_WHEEL_SENSITIVITY = 0.0018;
 const THEME_STORAGE_KEY = 'cryptoDraw.theme';
 const CANVAS_STATE_STORAGE_KEY = 'cryptoDraw.canvasState';
+const ACTIVE_CANVAS_STORAGE_KEY = 'cryptoDraw.activeCanvasId';
 const SNAP_TO_GRID_STORAGE_KEY = 'cryptoDraw.snapToGrid';
 const CONSENT_KEY = 'cryptoDraw.cookie-consent';
 const CUSTOM_FUNCTIONS_STORAGE_KEY = 'cryptoDraw.customFunctions';
@@ -86,19 +93,6 @@ function loadCanvasState() {
     } catch (error) {
         console.warn('Failed to load canvas state from localStorage:', error);
         return { placedBlocks: [], edges: [] };
-    }
-}
-
-function saveCanvasState(placedBlocks: any[], edges: any[]) {
-    if (globalThis.window === undefined) {
-        return;
-    }
-
-    try {
-        const serialized = serializeFlowchartToBase64(placedBlocks, edges);
-        globalThis.window.localStorage.setItem(CANVAS_STATE_STORAGE_KEY, serialized);
-    } catch (error) {
-        console.warn('Failed to save canvas state to localStorage:', error);
     }
 }
 
@@ -189,7 +183,7 @@ function readPanelFromQuery() {
     try {
         const params = new URLSearchParams(globalThis.window.location.search);
         const panel = params.get('panel');
-        return panel && panel.trim() ? panel : null;
+        return panel?.trim() ? panel : null;
     } catch {
         return null;
     }
@@ -210,7 +204,6 @@ function resolveCustomFunctionName(baseName: string, existing: Array<{ name: str
 
 function App() {
     const [initialPanel] = useState(() => readPanelFromQuery());
-    const initialCanvasState = loadCanvasState();
     const [showConsent, setShowConsent] = useState(() => {
         const localConsent = globalThis.localStorage.getItem(CONSENT_KEY);
         const sessionConsent = globalThis.sessionStorage.getItem(CONSENT_KEY);
@@ -218,8 +211,22 @@ function App() {
         return localConsent !== 'accepted' && sessionConsent !== 'accepted';
     });
 
-    const [placedBlocks, setPlacedBlocks] = useState<any[]>(initialCanvasState.placedBlocks);
-    const [edges, setEdges] = useState<any[]>(initialCanvasState.edges);
+    const [placedBlocks, setPlacedBlocks] = useState<any[]>([]);
+    const [edges, setEdges] = useState<any[]>([]);
+    const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([]);
+    const [canvases, setCanvases] = useState<Array<{ id: string; name: string; order: number }>>(
+        []
+    );
+    const [activeCanvasId, setActiveCanvasId] = useState<string | null>(null);
+    const [canvasReady, setCanvasReady] = useState(false);
+    const [canvasModal, setCanvasModal] = useState<
+        | null
+        | {
+            mode: 'create' | 'rename' | 'delete';
+            targetId?: string;
+            name: string;
+        }
+    >(null);
     const [sidePanelOpen, setSidePanelOpen] = useState(() => Boolean(initialPanel));
     const [theme, setTheme] = useState<string>(readStoredTheme);
     const [snapToGrid, setSnapToGrid] = useState<boolean>(readStoredSnapToGrid);
@@ -256,6 +263,7 @@ function App() {
     const [customFunctions, setCustomFunctions] =
         useState<Array<{ id: string; name: string; payload: string }>>(readStoredCustomFunctions);
     const [toast, setToast] = useState<null | { message: string; kind: 'success' | 'error' }>(null);
+    const [historyEpoch, setHistoryEpoch] = useState(0);
 
     const dragStateRef = useRef<any>({
         pointerId: null,
@@ -272,10 +280,16 @@ function App() {
         currentClientY: 0,
         additive: false,
     });
+    const viewportRafRef = useRef<number | null>(null);
+    const panRafRef = useRef<number | null>(null);
+    const wheelRafRef = useRef<number | null>(null);
+    const pendingPanScrollRef = useRef<{ left: number; top: number } | null>(null);
+    const pendingWheelScrollRef = useRef<{ left: number; top: number } | null>(null);
 
     const wireDragRef = useRef(wireDrag);
     const placedBlocksRef = useRef(placedBlocks);
     const selectedBlockIdsRef = useRef(selectedBlockIds);
+    const selectedEdgeIdsRef = useRef(selectedEdgeIds);
     const edgesRef = useRef(edges);
     const blockContextMenuRef = useRef<HTMLDivElement | null>(null);
     const boardContextMenuRef = useRef<HTMLDivElement | null>(null);
@@ -289,6 +303,41 @@ function App() {
     const pasteOffsetCounterRef = useRef(0);
     const lastClipboardRef = useRef<string | null>(null);
     const anchorPhaseRef = useRef<'center' | 'top-left' | 'left-middle'>('center');
+    const historyRef = useRef<{
+        past: Array<{
+            placedBlocks: any[];
+            edges: any[];
+            selectedBlockIds: string[];
+            selectedEdgeIds: string[];
+        }>;
+        future: Array<{
+            placedBlocks: any[];
+            edges: any[];
+            selectedBlockIds: string[];
+            selectedEdgeIds: string[];
+        }>;
+    }>({ past: [], future: [] });
+    const prevSnapshotRef = useRef<{
+        placedBlocks: any[];
+        edges: any[];
+        selectedBlockIds: string[];
+        selectedEdgeIds: string[];
+    } | null>(null);
+    const historyDebounceRef = useRef<number | null>(null);
+    const pendingHistoryBaseRef = useRef<{
+        placedBlocks: any[];
+        edges: any[];
+        selectedBlockIds: string[];
+        selectedEdgeIds: string[];
+    } | null>(null);
+    const pendingHistorySnapshotRef = useRef<{
+        placedBlocks: any[];
+        edges: any[];
+        selectedBlockIds: string[];
+        selectedEdgeIds: string[];
+    } | null>(null);
+    const suppressHistoryRef = useRef(false);
+    const suppressSaveRef = useRef(false);
 
     // Disable browser's automatic scroll restoration to allow manual control
     useEffect(() => {
@@ -314,6 +363,102 @@ function App() {
         // Fallback redirect
         globalThis.location.href = 'https://google.com';
     };
+
+    const cloneSnapshot = useCallback(
+        (snapshot: {
+            placedBlocks: any[];
+            edges: any[];
+            selectedBlockIds: string[];
+            selectedEdgeIds: string[];
+        }) => structuredClone(snapshot),
+        []
+    );
+
+    const resetHistory = () => {
+        historyRef.current = { past: [], future: [] };
+        setHistoryEpoch((n) => n + 1);
+    };
+
+    const applyCanvasRecord = useCallback((record: CanvasRecord) => {
+        suppressHistoryRef.current = true;
+        suppressSaveRef.current = true;
+        setPlacedBlocks(record.placedBlocks ?? []);
+        setEdges(record.edges ?? []);
+        setSelectedBlockIds([]);
+        setSelectedEdgeIds([]);
+        setActiveCanvasId(record.id);
+        setCanvasReady(true);
+        prevSnapshotRef.current = {
+            placedBlocks: record.placedBlocks ?? [],
+            edges: record.edges ?? [],
+            selectedBlockIds: [],
+            selectedEdgeIds: [],
+        };
+        resetHistory();
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const initCanvases = async () => {
+            try {
+                let records = await getAllCanvases();
+
+                if (!records.length) {
+                    const legacy = loadCanvasState();
+                    const fallbackRecord: CanvasRecord = {
+                        id: crypto.randomUUID(),
+                        name: 'Canvas 1',
+                        order: Date.now(),
+                        updatedAt: Date.now(),
+                        placedBlocks: legacy.placedBlocks,
+                        edges: legacy.edges,
+                    };
+                    await saveCanvas(fallbackRecord);
+                    records = [fallbackRecord];
+                }
+
+                if (cancelled) {
+                    return;
+                }
+
+                const sorted = [...records].sort((a, b) => a.order - b.order);
+                setCanvases(sorted.map(({ id, name, order }) => ({ id, name, order })));
+
+                const storedActiveId = globalThis.localStorage.getItem(ACTIVE_CANVAS_STORAGE_KEY);
+                const activeId =
+                    storedActiveId && sorted.some((record) => record.id === storedActiveId)
+                        ? storedActiveId
+                        : sorted[0]?.id ?? null;
+
+                if (activeId) {
+                    globalThis.localStorage.setItem(ACTIVE_CANVAS_STORAGE_KEY, activeId);
+                    const activeRecord =
+                        sorted.find((record) => record.id === activeId) ?? sorted[0];
+                    applyCanvasRecord(activeRecord);
+                }
+            } catch (error) {
+                console.warn('Failed to initialize canvases:', error);
+            }
+        };
+
+        initCanvases();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [applyCanvasRecord]);
+
+    useEffect(() => {
+        if (!activeCanvasId) {
+            return;
+        }
+        try {
+            globalThis.localStorage.setItem(ACTIVE_CANVAS_STORAGE_KEY, activeCanvasId);
+        } catch {
+            // Ignore storage failures.
+        }
+    }, [activeCanvasId]);
 
     useEffect(() => {
         const resolvedTheme = resolveTheme(theme);
@@ -374,10 +519,6 @@ function App() {
     }, [snapToGrid]);
 
     useEffect(() => {
-        saveCanvasState(placedBlocks, edges);
-    }, [placedBlocks, edges]);
-
-    useEffect(() => {
         if (!toast) {
             return;
         }
@@ -389,6 +530,40 @@ function App() {
         setToast({ message, kind });
     }, []);
 
+    const activeCanvas = useMemo(
+        () => canvases.find((canvas) => canvas.id === activeCanvasId) ?? null,
+        [canvases, activeCanvasId]
+    );
+
+    const persistActiveCanvas = useCallback(async () => {
+        if (!activeCanvas || !activeCanvasId) {
+            return;
+        }
+        try {
+            await saveCanvas({
+                id: activeCanvasId,
+                name: activeCanvas.name,
+                order: activeCanvas.order,
+                updatedAt: Date.now(),
+                placedBlocks: placedBlocksRef.current,
+                edges: edgesRef.current,
+            });
+        } catch (error) {
+            console.warn('Failed to save canvas:', error);
+        }
+    }, [activeCanvas, activeCanvasId]);
+
+    useEffect(() => {
+        if (!canvasReady || !activeCanvas) {
+            return;
+        }
+        if (suppressSaveRef.current) {
+            suppressSaveRef.current = false;
+            return;
+        }
+        persistActiveCanvas();
+    }, [canvasReady, activeCanvas, persistActiveCanvas, placedBlocks, edges]);
+
     const canAddBlocks = useCallback(
         (incomingCount: number) => {
             if (placedBlocksRef.current.length + incomingCount > MAX_BLOCKS) {
@@ -399,6 +574,155 @@ function App() {
         },
         [showToast]
     );
+
+    const switchCanvas = useCallback(
+        async (nextId: string) => {
+            if (!activeCanvasId || nextId === activeCanvasId) {
+                return;
+            }
+            await persistActiveCanvas();
+            const record = await getCanvasById(nextId);
+            if (!record) {
+                return;
+            }
+            applyCanvasRecord(record);
+        },
+        [activeCanvasId, applyCanvasRecord, persistActiveCanvas]
+    );
+
+    const activeCanvasIndex = useMemo(() => {
+        if (!activeCanvasId) {
+            return -1;
+        }
+        return canvases.findIndex((canvas) => canvas.id === activeCanvasId);
+    }, [canvases, activeCanvasId]);
+
+    const selectPrevCanvas = useCallback(() => {
+        if (!canvases.length || activeCanvasIndex === -1) {
+            return;
+        }
+        const nextIndex =
+            activeCanvasIndex === 0 ? canvases.length - 1 : activeCanvasIndex - 1;
+        switchCanvas(canvases[nextIndex].id);
+    }, [activeCanvasIndex, canvases, switchCanvas]);
+
+    const selectNextCanvas = useCallback(() => {
+        if (!canvases.length || activeCanvasIndex === -1) {
+            return;
+        }
+        const nextIndex =
+            activeCanvasIndex === canvases.length - 1 ? 0 : activeCanvasIndex + 1;
+        switchCanvas(canvases[nextIndex].id);
+    }, [activeCanvasIndex, canvases, switchCanvas]);
+
+    const openCreateCanvas = useCallback(() => {
+        setCanvasModal({ mode: 'create', name: '' });
+    }, []);
+
+    const openRenameCanvas = useCallback((canvasId: string, name: string) => {
+        setCanvasModal({ mode: 'rename', targetId: canvasId, name });
+    }, []);
+
+    const openDeleteCanvas = useCallback(() => {
+        if (!activeCanvasId || !activeCanvas) {
+            return;
+        }
+        setCanvasModal({ mode: 'delete', targetId: activeCanvasId, name: activeCanvas.name });
+    }, [activeCanvas, activeCanvasId]);
+
+    const closeCanvasModal = useCallback(() => {
+        setCanvasModal(null);
+    }, []);
+
+    const confirmCanvasModal = useCallback(async () => {
+        if (!canvasModal) {
+            return;
+        }
+
+        if (canvasModal.mode === 'create') {
+            const name = canvasModal.name.trim();
+            if (!name) {
+                showToast('Canvas name is required.', 'error');
+                return;
+            }
+            await persistActiveCanvas();
+            const record: CanvasRecord = {
+                id: crypto.randomUUID(),
+                name,
+                order: Date.now(),
+                updatedAt: Date.now(),
+                placedBlocks: [],
+                edges: [],
+            };
+            await saveCanvas(record);
+            setCanvases((prev) => [...prev, { id: record.id, name, order: record.order }]);
+            applyCanvasRecord(record);
+            setCanvasModal(null);
+            showToast(`Created canvas "${name}".`, 'success');
+            return;
+        }
+
+        if (canvasModal.mode === 'rename' && canvasModal.targetId) {
+            const name = canvasModal.name.trim();
+            if (!name) {
+                showToast('Canvas name is required.', 'error');
+                return;
+            }
+            if (activeCanvasId === canvasModal.targetId) {
+                await persistActiveCanvas();
+            }
+            const record = await getCanvasById(canvasModal.targetId);
+            if (!record) {
+                showToast('Canvas no longer exists.', 'error');
+                setCanvasModal(null);
+                return;
+            }
+            const updated = { ...record, name, updatedAt: Date.now() };
+            await saveCanvas(updated);
+            setCanvases((prev) =>
+                prev.map((canvas) =>
+                    canvas.id === canvasModal.targetId ? { ...canvas, name } : canvas
+                )
+            );
+            if (activeCanvasId === canvasModal.targetId) {
+                setActiveCanvasId(canvasModal.targetId);
+            }
+            setCanvasModal(null);
+            showToast(`Renamed canvas to "${name}".`, 'success');
+            return;
+        }
+
+        if (canvasModal.mode === 'delete' && canvasModal.targetId) {
+            if (canvases.length <= 1) {
+                showToast('At least one canvas must remain.', 'error');
+                return;
+            }
+            const targetId = canvasModal.targetId;
+            await persistActiveCanvas();
+            await deleteCanvasById(targetId);
+            const nextCanvases = canvases.filter((canvas) => canvas.id !== targetId);
+            setCanvases(nextCanvases);
+
+            if (activeCanvasId === targetId) {
+                const nextId = nextCanvases[0]?.id ?? null;
+                if (nextId) {
+                    const record = await getCanvasById(nextId);
+                    if (record) {
+                        applyCanvasRecord(record);
+                    }
+                }
+            }
+            setCanvasModal(null);
+            showToast('Canvas deleted.', 'success');
+        }
+    }, [
+        activeCanvasId,
+        applyCanvasRecord,
+        canvasModal,
+        canvases,
+        persistActiveCanvas,
+        showToast,
+    ]);
 
     useEffect(() => {
         try {
@@ -529,6 +853,28 @@ function App() {
                 }
                 return [blockId];
             });
+            if (!additive) {
+                setSelectedEdgeIds([]);
+            }
+            closeContextMenus();
+        },
+        [closeContextMenus]
+    );
+
+    const handleSelectEdge = useCallback(
+        (edgeId: string, additive: boolean) => {
+            setSelectedEdgeIds((prev) => {
+                if (additive) {
+                    if (prev.includes(edgeId)) {
+                        return prev.filter((id) => id !== edgeId);
+                    }
+                    return [...prev, edgeId];
+                }
+                return [edgeId];
+            });
+            if (!additive) {
+                setSelectedBlockIds([]);
+            }
             closeContextMenus();
         },
         [closeContextMenus]
@@ -545,6 +891,7 @@ function App() {
     const openBlockContextMenu = useCallback(
         (blockId: string, clientX: number, clientY: number) => {
             setSelectedBlockIds((prev) => (prev.includes(blockId) ? prev : [blockId]));
+            setSelectedEdgeIds([]);
             closeContextMenus();
             setBlockContextMenu({ blockId, clientX, clientY });
         },
@@ -581,11 +928,24 @@ function App() {
             setPlacedBlocks(nextPlacedBlocks);
             setEdges(nextEdges);
             setSelectedBlockIds([]);
+            setSelectedEdgeIds([]);
             closeContextMenus();
             bumpLayout();
         },
         [bumpLayout, closeContextMenus]
     );
+
+    const deleteSelectedEdges = useCallback(() => {
+        const edgeIds = selectedEdgeIdsRef.current;
+        if (!edgeIds.length) {
+            return false;
+        }
+        const edgeIdSet = new Set(edgeIds);
+        setEdges((prev) => prev.filter((edge) => !edgeIdSet.has(edge.id)));
+        setSelectedEdgeIds([]);
+        bumpLayout();
+        return true;
+    }, [bumpLayout]);
 
     const duplicateSelectedBlocks = useCallback(
         (menuBlockId: string) => {
@@ -623,6 +983,7 @@ function App() {
 
             setPlacedBlocks((prev) => [...prev, ...duplicated]);
             setSelectedBlockIds(duplicated.map((block) => block.id));
+            setSelectedEdgeIds([]);
             if (internalNewEdges.length) {
                 setEdges((prev) => [...prev, ...internalNewEdges]);
             }
@@ -693,8 +1054,7 @@ function App() {
                 try {
                     const parsedShare = JSON.parse(rawText);
                     if (
-                        parsedShare &&
-                        parsedShare.type === 'custom-function' &&
+                        parsedShare?.type === 'custom-function' &&
                         typeof parsedShare.payload === 'string'
                     ) {
                         text = parsedShare.payload;
@@ -808,6 +1168,7 @@ function App() {
                     setEdges((prev) => [...prev, ...newEdges]);
                 }
                 setSelectedBlockIds(duplicated.map((b) => b.id));
+                setSelectedEdgeIds([]);
                 closeContextMenus();
                 bumpLayout();
                 return true;
@@ -944,47 +1305,12 @@ function App() {
                 setEdges((prev) => [...prev, ...newEdges]);
             }
             setSelectedBlockIds(duplicated.map((b) => b.id));
+            setSelectedEdgeIds([]);
             bumpLayout();
             return true;
         },
         [bumpLayout, canAddBlocks, customFunctions, snapToGrid]
     );
-
-    useEffect(() => {
-        const isInteractive = (el: Element | null) =>
-            el ? !!el.closest?.('input, textarea, select, [contenteditable="true"]') : false;
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            const active = document.activeElement;
-            if (isInteractive(active)) return;
-
-            const cmd = event.ctrlKey || event.metaKey;
-
-            if ((event.key === 'Delete' || event.key === 'Backspace') && !cmd) {
-                // delete selected
-                const sel = selectedBlockIdsRef.current;
-                if (!sel.length) return;
-                // use existing deleteSelectedBlocks by passing first id
-                deleteSelectedBlocks(sel[0]);
-                event.preventDefault();
-                return;
-            }
-
-            if (cmd && (event.key === 'c' || event.key === 'C')) {
-                copySelectedBlocks();
-                event.preventDefault();
-                return;
-            }
-
-            if (cmd && (event.key === 'v' || event.key === 'V')) {
-                pasteFromClipboard();
-                event.preventDefault();
-            }
-        };
-
-        globalThis.addEventListener('keydown', onKeyDown);
-        return () => globalThis.removeEventListener('keydown', onKeyDown);
-    }, [copySelectedBlocks, pasteFromClipboard, deleteSelectedBlocks]);
 
     const applySelectionFromMarquee = useCallback(() => {
         const state = selectionStateRef.current;
@@ -1064,8 +1390,197 @@ function App() {
     }, [selectedPlacedBlockIds]);
 
     useEffect(() => {
+        selectedEdgeIdsRef.current = selectedEdgeIds;
+    }, [selectedEdgeIds]);
+
+    useEffect(() => {
         edgesRef.current = edges;
     }, [edges]);
+
+    const getCurrentSnapshot = useCallback(() => {
+        return {
+            placedBlocks: placedBlocksRef.current,
+            edges: edgesRef.current,
+            selectedBlockIds: selectedBlockIdsRef.current,
+            selectedEdgeIds: selectedEdgeIdsRef.current,
+        };
+    }, []);
+
+    useEffect(() => {
+        const snapshot = {
+            placedBlocks,
+            edges,
+            selectedBlockIds,
+            selectedEdgeIds,
+        };
+
+        if (!prevSnapshotRef.current) {
+            prevSnapshotRef.current = snapshot;
+            return;
+        }
+
+        if (suppressHistoryRef.current) {
+            suppressHistoryRef.current = false;
+            prevSnapshotRef.current = snapshot;
+            if (historyDebounceRef.current) {
+                globalThis.clearTimeout(historyDebounceRef.current);
+                historyDebounceRef.current = null;
+            }
+            pendingHistoryBaseRef.current = null;
+            pendingHistorySnapshotRef.current = null;
+            return;
+        }
+
+        const prev = prevSnapshotRef.current;
+        if (
+            prev.placedBlocks === placedBlocks &&
+            prev.edges === edges &&
+            prev.selectedBlockIds === selectedBlockIds &&
+            prev.selectedEdgeIds === selectedEdgeIds
+        ) {
+            return;
+        }
+
+        if (!pendingHistoryBaseRef.current) {
+            pendingHistoryBaseRef.current = cloneSnapshot(prev);
+        }
+        pendingHistorySnapshotRef.current = snapshot;
+        prevSnapshotRef.current = snapshot;
+
+        if (historyDebounceRef.current) {
+            globalThis.clearTimeout(historyDebounceRef.current);
+        }
+
+        historyDebounceRef.current = globalThis.setTimeout(() => {
+            const baseSnapshot = pendingHistoryBaseRef.current;
+            const latestSnapshot = pendingHistorySnapshotRef.current;
+            pendingHistoryBaseRef.current = null;
+            pendingHistorySnapshotRef.current = null;
+            historyDebounceRef.current = null;
+
+            if (!baseSnapshot || !latestSnapshot) {
+                return;
+            }
+
+            historyRef.current.past.push(cloneSnapshot(baseSnapshot));
+            historyRef.current.future = [];
+            prevSnapshotRef.current = latestSnapshot;
+            setHistoryEpoch((n) => n + 1);
+        }, 350);
+    }, [cloneSnapshot, edges, placedBlocks, selectedBlockIds, selectedEdgeIds]);
+
+    useEffect(() => {
+        return () => {
+            if (historyDebounceRef.current) {
+                globalThis.clearTimeout(historyDebounceRef.current);
+            }
+            if (panRafRef.current !== null) {
+                globalThis.cancelAnimationFrame(panRafRef.current);
+                panRafRef.current = null;
+            }
+            if (wheelRafRef.current !== null) {
+                globalThis.cancelAnimationFrame(wheelRafRef.current);
+                wheelRafRef.current = null;
+            }
+        };
+    }, []);
+
+    const undo = useCallback(() => {
+        const past = historyRef.current.past;
+        if (!past.length) {
+            return;
+        }
+        const previous = past.pop();
+        if (!previous) {
+            return;
+        }
+        historyRef.current.future.push(cloneSnapshot(getCurrentSnapshot()));
+        suppressHistoryRef.current = true;
+        setPlacedBlocks(previous.placedBlocks);
+        setEdges(previous.edges);
+        setSelectedBlockIds(previous.selectedBlockIds);
+        setSelectedEdgeIds(previous.selectedEdgeIds);
+        prevSnapshotRef.current = previous;
+        setHistoryEpoch((n) => n + 1);
+    }, [cloneSnapshot, getCurrentSnapshot]);
+
+    const redo = useCallback(() => {
+        const future = historyRef.current.future;
+        if (!future.length) {
+            return;
+        }
+        const next = future.pop();
+        if (!next) {
+            return;
+        }
+        historyRef.current.past.push(cloneSnapshot(getCurrentSnapshot()));
+        suppressHistoryRef.current = true;
+        setPlacedBlocks(next.placedBlocks);
+        setEdges(next.edges);
+        setSelectedBlockIds(next.selectedBlockIds);
+        setSelectedEdgeIds(next.selectedEdgeIds);
+        prevSnapshotRef.current = next;
+        setHistoryEpoch((n) => n + 1);
+    }, [cloneSnapshot, getCurrentSnapshot]);
+
+    useEffect(() => {
+        const isInteractive = (el: Element | null) =>
+            el ? !!el.closest?.('input, textarea, select, [contenteditable="true"]') : false;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            const active = document.activeElement;
+            if (isInteractive(active)) return;
+
+            const cmd = event.ctrlKey || event.metaKey;
+
+            if (cmd && (event.key === 'z' || event.key === 'Z')) {
+                undo();
+                event.preventDefault();
+                return;
+            }
+
+            if (cmd && (event.key === 'y' || event.key === 'Y')) {
+                redo();
+                event.preventDefault();
+                return;
+            }
+
+            if ((event.key === 'Delete' || event.key === 'Backspace') && !cmd) {
+                // delete selected wires or blocks
+                if (selectedEdgeIdsRef.current.length) {
+                    deleteSelectedEdges();
+                    event.preventDefault();
+                    return;
+                }
+                const sel = selectedBlockIdsRef.current;
+                if (!sel.length) return;
+                deleteSelectedBlocks(sel[0]);
+                event.preventDefault();
+                return;
+            }
+
+            if (cmd && (event.key === 'c' || event.key === 'C')) {
+                copySelectedBlocks();
+                event.preventDefault();
+                return;
+            }
+
+            if (cmd && (event.key === 'v' || event.key === 'V')) {
+                pasteFromClipboard();
+                event.preventDefault();
+            }
+        };
+
+        globalThis.addEventListener('keydown', onKeyDown);
+        return () => globalThis.removeEventListener('keydown', onKeyDown);
+    }, [
+        copySelectedBlocks,
+        deleteSelectedBlocks,
+        deleteSelectedEdges,
+        pasteFromClipboard,
+        redo,
+        undo,
+    ]);
 
     useEffect(() => {
         if (!activeBlockContextMenu && !boardContextMenu) {
@@ -1284,18 +1799,31 @@ function App() {
                 width: usableInnerWidthPx / z,
                 height: window.innerHeight / z,
             });
-            bumpLayout();
         };
 
-        updateViewport();
-        window.addEventListener('scroll', updateViewport, { passive: true });
-        window.addEventListener('resize', updateViewport);
+        const scheduleViewport = () => {
+            if (viewportRafRef.current !== null) {
+                return;
+            }
+            viewportRafRef.current = globalThis.requestAnimationFrame(() => {
+                viewportRafRef.current = null;
+                updateViewport();
+            });
+        };
+
+        scheduleViewport();
+        window.addEventListener('scroll', scheduleViewport, { passive: true });
+        window.addEventListener('resize', scheduleViewport);
 
         return () => {
-            window.removeEventListener('scroll', updateViewport);
-            window.removeEventListener('resize', updateViewport);
+            window.removeEventListener('scroll', scheduleViewport);
+            window.removeEventListener('resize', scheduleViewport);
+            if (viewportRafRef.current !== null) {
+                globalThis.cancelAnimationFrame(viewportRafRef.current);
+                viewportRafRef.current = null;
+            }
         };
-    }, [bumpLayout, zoom, sidePanelOpen]);
+    }, [zoom, sidePanelOpen]);
 
     // Reset paste offset counter when the viewport changes so pastes from a
     // new view start at zero offset.
@@ -1375,19 +1903,28 @@ function App() {
             const canvasX = (window.scrollX + event.clientX) / z0;
             const canvasY = (window.scrollY + event.clientY) / z0;
 
-            flushSync(() => {
-                setZoom(nextZoom);
-            });
+            const maxScrollLeft = Math.max(0, CANVAS_SIZE * nextZoom - window.innerWidth);
+            const maxScrollTop = Math.max(0, CANVAS_SIZE * nextZoom - window.innerHeight);
+            const left = Math.min(Math.max(0, canvasX * nextZoom - event.clientX), maxScrollLeft);
+            const top = Math.min(Math.max(0, canvasY * nextZoom - event.clientY), maxScrollTop);
 
-            requestAnimationFrame(() => {
-                const maxScrollLeft = Math.max(0, CANVAS_SIZE * nextZoom - window.innerWidth);
-                const maxScrollTop = Math.max(0, CANVAS_SIZE * nextZoom - window.innerHeight);
-                const left = Math.min(
-                    Math.max(0, canvasX * nextZoom - event.clientX),
-                    maxScrollLeft
-                );
-                const top = Math.min(Math.max(0, canvasY * nextZoom - event.clientY), maxScrollTop);
-                window.scrollTo({ left, top });
+            // Keep ref in sync immediately so rapid wheel events use the latest zoom baseline.
+            zoomRef.current = nextZoom;
+            pendingWheelScrollRef.current = { left, top };
+            setZoom(nextZoom);
+
+            if (wheelRafRef.current !== null) {
+                return;
+            }
+
+            wheelRafRef.current = globalThis.requestAnimationFrame(() => {
+                wheelRafRef.current = null;
+                const pending = pendingWheelScrollRef.current;
+                if (!pending) {
+                    return;
+                }
+                pendingWheelScrollRef.current = null;
+                window.scrollTo({ left: pending.left, top: pending.top });
             });
         };
 
@@ -1450,6 +1987,9 @@ function App() {
                 currentClientY: event.clientY,
                 additive,
             };
+            if (!additive) {
+                setSelectedEdgeIds([]);
+            }
             setIsSelecting(true);
 
             const z = zoomRef.current;
@@ -1466,6 +2006,7 @@ function App() {
 
         if (!(event.ctrlKey || event.metaKey)) {
             setSelectedBlockIds([]);
+            setSelectedEdgeIds([]);
         }
 
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -1509,9 +2050,22 @@ function App() {
         const dx = event.clientX - dragStateRef.current.startX;
         const dy = event.clientY - dragStateRef.current.startY;
 
-        window.scrollTo({
-            left: dragStateRef.current.startScrollX - dx,
-            top: dragStateRef.current.startScrollY - dy,
+        const targetLeft = dragStateRef.current.startScrollX - dx;
+        const targetTop = dragStateRef.current.startScrollY - dy;
+
+        pendingPanScrollRef.current = { left: targetLeft, top: targetTop };
+        if (panRafRef.current !== null) {
+            return;
+        }
+
+        panRafRef.current = globalThis.requestAnimationFrame(() => {
+            panRafRef.current = null;
+            const pending = pendingPanScrollRef.current;
+            if (!pending) {
+                return;
+            }
+            pendingPanScrollRef.current = null;
+            window.scrollTo({ left: pending.left, top: pending.top });
         });
     };
 
@@ -1625,10 +2179,13 @@ function App() {
         [registerAnchor, onPortPointerDown, wireDrag, zoom]
     );
 
-    const handleExportFlowchart = useCallback(
-        () => serializeFlowchartToBase64(placedBlocks, edges),
-        [placedBlocks, edges]
-    );
+    const exportValue = useMemo(() => {
+        try {
+            return serializeFlowchartToBase64(placedBlocks, edges);
+        } catch {
+            return '';
+        }
+    }, [placedBlocks, edges]);
 
     const handleImportFlowchart = useCallback(
         (base64Text: string, options?: { anchorToViewport?: boolean }) => {
@@ -1654,7 +2211,7 @@ function App() {
                 const dy = targetCy - graphCy;
                 parsed = {
                     ...parsed,
-                    placedBlocks: parsed.placedBlocks.map((block: { x: number; y: number }) => {
+                    placedBlocks: parsed.placedBlocks.map((block: any) => {
                         const nx = block.x + dx;
                         const ny = block.y + dy;
                         return {
@@ -1667,6 +2224,8 @@ function App() {
             }
             setPlacedBlocks(parsed.placedBlocks);
             setEdges(parsed.edges);
+            setSelectedBlockIds([]);
+            setSelectedEdgeIds([]);
             bumpLayout();
             if (!options?.anchorToViewport) {
                 scrollToBlocks(parsed.placedBlocks);
@@ -1679,6 +2238,7 @@ function App() {
         setPlacedBlocks([]);
         setEdges([]);
         setSelectedBlockIds([]);
+        setSelectedEdgeIds([]);
         bumpLayout();
         // center view on canvas
         const z = zoomRef.current;
@@ -1692,8 +2252,95 @@ function App() {
         window.scrollTo({ left, top });
     }, [bumpLayout]);
 
+    const canUndo = useMemo(() => historyRef.current.past.length > 0, [historyEpoch]);
+    const canRedo = useMemo(() => historyRef.current.future.length > 0, [historyEpoch]);
+    const canvasModalTitle = useMemo(() => {
+        if (!canvasModal) {
+            return '';
+        }
+        if (canvasModal.mode === 'create') {
+            return 'Create canvas';
+        }
+        if (canvasModal.mode === 'rename') {
+            return 'Rename canvas';
+        }
+        return 'Delete canvas';
+    }, [canvasModal]);
+
     return (
         <>
+            <header className="canvas-carousel-bar" aria-label="Canvas selector">
+                <div className="canvas-carousel-actions">
+                    <button
+                        type="button"
+                        className="canvas-carousel__action"
+                        onClick={openCreateCanvas}
+                    >
+                        New
+                    </button>
+                    <button
+                        type="button"
+                        className="canvas-carousel__action"
+                        onClick={openDeleteCanvas}
+                        disabled={canvases.length <= 1}
+                    >
+                        Delete
+                    </button>
+                </div>
+                <div className="carousel slide canvas-carousel" data-bs-interval="false">
+                    <div className="carousel-inner">
+                        {canvases.map((canvas) => (
+                            <div
+                                key={canvas.id}
+                                className={`carousel-item ${canvas.id === activeCanvasId ? 'active' : ''}`}
+                            >
+                                <button
+                                    type="button"
+                                    className="canvas-carousel__name"
+                                    onClick={() => switchCanvas(canvas.id)}
+                                    onDoubleClick={() => openRenameCanvas(canvas.id, canvas.name)}
+                                >
+                                    {canvas.name}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        className="carousel-control-prev"
+                        type="button"
+                        aria-label="Previous canvas"
+                        onClick={selectPrevCanvas}
+                    >
+                        <span className="carousel-control-prev-icon" aria-hidden="true" />
+                    </button>
+                    <button
+                        className="carousel-control-next"
+                        type="button"
+                        aria-label="Next canvas"
+                        onClick={selectNextCanvas}
+                    >
+                        <span className="carousel-control-next-icon" aria-hidden="true" />
+                    </button>
+                </div>
+                <div className="canvas-carousel-actions">
+                    <button
+                        type="button"
+                        className="canvas-carousel__action"
+                        onClick={undo}
+                        disabled={!canUndo}
+                    >
+                        Undo
+                    </button>
+                    <button
+                        type="button"
+                        className="canvas-carousel__action"
+                        onClick={redo}
+                        disabled={!canRedo}
+                    >
+                        Redo
+                    </button>
+                </div>
+            </header>
             <section className="cursor-mode-menu" aria-label="Cursor mode">
                 <p className="cursor-mode-menu__label">Cursor</p>
                 <div className="cursor-mode-menu__buttons" role="tablist" aria-label="Cursor modes">
@@ -1736,6 +2383,8 @@ function App() {
                     <CanvasGraphContext.Provider value={graphContextValue}>
                         <CanvasWires
                             edges={edges}
+                            selectedEdgeIds={selectedEdgeIds}
+                            onSelectEdge={handleSelectEdge}
                             anchorsRef={anchorsRef}
                             canvasRef={canvasRef}
                             rubberBand={wireDrag}
@@ -1868,7 +2517,7 @@ function App() {
                     </select>
                 </section>
                 <SidePanelExpandablePanels
-                    onExportFlowchart={handleExportFlowchart}
+                    exportValue={exportValue}
                     onImportFlowchart={handleImportFlowchart}
                     onClearFlowchart={handleClearFlowchart}
                     snapToGrid={snapToGrid}
@@ -1885,6 +2534,62 @@ function App() {
                     onToast={showToast}
                 />
             </SidePanel>
+            {canvasModal ? (
+                <div className="canvas-modal-overlay">
+                    <button
+                        type="button"
+                        className="canvas-modal-backdrop"
+                        aria-label="Close canvas dialog"
+                        onClick={closeCanvasModal}
+                    />
+                    <dialog
+                        className="canvas-modal"
+                        aria-modal="true"
+                        aria-labelledby="canvas-modal-title"
+                        open
+                    >
+                        <h3 id="canvas-modal-title" className="canvas-modal-title">
+                            {canvasModalTitle}
+                        </h3>
+                        {canvasModal.mode === 'delete' ? (
+                            <p className="canvas-modal-text">
+                                Delete "{canvasModal.name}"? This cannot be undone.
+                            </p>
+                        ) : (
+                            <input
+                                className="canvas-modal-input"
+                                value={canvasModal.name}
+                                autoFocus
+                                onChange={(event) =>
+                                    setCanvasModal((prev) =>
+                                        prev
+                                            ? { ...prev, name: event.target.value }
+                                            : prev
+                                    )
+                                }
+                                placeholder="Canvas name"
+                                aria-label="Canvas name"
+                            />
+                        )}
+                        <div className="canvas-modal-actions">
+                            <button
+                                type="button"
+                                className="canvas-modal-button"
+                                onClick={confirmCanvasModal}
+                            >
+                                {canvasModal.mode === 'delete' ? 'Delete' : 'Save'}
+                            </button>
+                            <button
+                                type="button"
+                                className="canvas-modal-button"
+                                onClick={closeCanvasModal}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </dialog>
+                </div>
+            ) : null}
             {toast ? (
                 <div
                     className={`app-toast app-toast--${toast.kind}`}

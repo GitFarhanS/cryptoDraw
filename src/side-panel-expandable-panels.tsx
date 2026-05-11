@@ -34,7 +34,7 @@ const PANEL_HC_OUTLINES: Record<(typeof PANELS)[number], string> = {
 };
 
 interface Props {
-    onExportFlowchart: () => string;
+    exportValue: string;
     onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
     snapToGrid: boolean;
@@ -50,7 +50,7 @@ interface Props {
 }
 
 function SidePanelExpandablePanels({
-    onExportFlowchart,
+    exportValue,
     onImportFlowchart,
     onClearFlowchart,
     snapToGrid,
@@ -89,7 +89,7 @@ function SidePanelExpandablePanels({
             case 'Settings':
                 return (
                     <FlowchartIoPanel
-                        onExportFlowchart={onExportFlowchart}
+                        exportValue={exportValue}
                         onImportFlowchart={onImportFlowchart}
                         onClearFlowchart={onClearFlowchart}
                         snapToGrid={snapToGrid}
