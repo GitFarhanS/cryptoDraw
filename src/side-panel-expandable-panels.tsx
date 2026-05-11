@@ -5,12 +5,14 @@ import FlowchartIoPanel from './flowchart-settings-panel';
 import InputBlocks from './input-blocks/input-blocks';
 import OperationsBlocks from './operations-block/operations-blocks';
 import OutputBlock from './output-block/output-block';
+import PermutationBlocks from './permutation-block/permutation-blocks';
 import SboxBlocks from './sbox-block/sbox-blocks';
 import StreamBlocks from './stream-block/stream-blocks';
 
 const PANELS = [
     'Input',
     'Converter',
+    'Permutation',
     'Operations',
     'S-Boxes',
     'Stream',
@@ -25,6 +27,7 @@ const PANEL_FLOW_DENOM = Math.max(1, PANELS.length - 1);
 const PANEL_HC_OUTLINES: Record<(typeof PANELS)[number], string> = {
     Input: '#ffff00',
     Converter: '#38bdf8',
+    Permutation: '#2dd4bf',
     Operations: '#c084fc',
     'S-Boxes': '#4ade80',
     Stream: '#fb923c',
@@ -84,6 +87,8 @@ function SidePanelExpandablePanels({
                 return <ConverterBlocks />;
             case 'Operations':
                 return <OperationsBlocks />;
+            case 'Permutation':
+                return <PermutationBlocks />;
             case 'S-Boxes':
                 return <SboxBlocks />;
             case 'Stream':

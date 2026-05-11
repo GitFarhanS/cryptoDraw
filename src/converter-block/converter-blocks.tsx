@@ -1,6 +1,5 @@
 import FormatConvertBlock from './format-convert-block';
 import JoinLotsBlock from './join-lots-block';
-import PermuteReorderBlock from './permute-reorder-block';
 import SplitIntoLotsBlock from './split-into-lots-block';
 
 function ConverterBlocks() {
@@ -9,7 +8,6 @@ function ConverterBlocks() {
             <SplitIntoLotsBlock draggableToCanvas />
             <JoinLotsBlock draggableToCanvas />
             <FormatConvertBlock draggableToCanvas />
-            <PermuteReorderBlock draggableToCanvas />
         </div>
     );
 }
