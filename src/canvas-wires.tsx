@@ -11,9 +11,6 @@ interface Props {
     rubberBand: Pick<WireDragState, 'fromBlockId' | 'fromPortKey' | 'clientX' | 'clientY'> | null;
     layoutEpoch: number;
     zoom: number;
-    selectedEdgeId: string | null;
-    onSelectEdge: (edgeId: string, additive: boolean) => void;
-    onOpenEdgeContextMenu: (edgeId: string, clientX: number, clientY: number) => void;
 }
 
 function CanvasWires({
@@ -23,9 +20,6 @@ function CanvasWires({
     rubberBand,
     layoutEpoch,
     zoom,
-    selectedEdgeId,
-    onSelectEdge,
-    onOpenEdgeContextMenu,
 }: Readonly<Props>) {
     const [geometry, setGeometry] = useState<{
         paths: { edge: GraphEdge; d: string }[];
@@ -90,22 +84,10 @@ function CanvasWires({
             {geometry.paths.map(({ edge, d }) => (
                 <path
                     key={edge.id}
-                    className={`canvas-wires__edge ${selectedEdgeId === edge.id ? 'is-selected' : ''}`}
+                    className="canvas-wires__edge"
                     d={d}
                     fill="none"
                     data-edge-id={edge.id}
-                    onPointerDown={(event) => {
-                        if (event.button !== 0) {
-                            return;
-                        }
-                        onSelectEdge(edge.id, event.ctrlKey || event.metaKey);
-                        event.stopPropagation();
-                    }}
-                    onContextMenu={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onOpenEdgeContextMenu(edge.id, event.clientX, event.clientY);
-                    }}
                 />
             ))}
             {geometry.rubberPath ? (

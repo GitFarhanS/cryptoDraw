@@ -593,13 +593,13 @@ export function evaluateGraph(
         }
 
         if (SBOX_BLOCK_TYPES.includes(type as (typeof SBOX_BLOCK_TYPES)[number])) {
-            const input = getPort(blockId, 'in');
-            const outBytes = applySubBytes(input);
+            const input = getPort(blockId, 'in')
+            const outBytes = applySubBytes(input)
             setPort(blockId, 'out', outBytes, {
                 format: 'hex',
                 bitLength: outBytes.length * 8,
-            });
-            continue;
+            })
+            continue
         }
 
         if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {

@@ -62,7 +62,7 @@ export function inputPortKeysForBlock(
         return ['in'];
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
-        return ['in'];
+        return ['in']
     }
     if (blockType === 'chachaIetfInit') {
         return ['in:key', 'in:nonce']

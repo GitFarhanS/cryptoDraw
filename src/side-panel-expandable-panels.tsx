@@ -37,7 +37,6 @@ interface Props {
     onExportFlowchart: () => string;
     onImportFlowchart: (base64: string, options?: { anchorToViewport?: boolean }) => void;
     onClearFlowchart: () => void;
-    activeCanvasId: string;
     snapToGrid: boolean;
     onSnapToGridChange: (value: boolean) => void;
     onResetLocalStorage: () => void;
@@ -54,7 +53,6 @@ function SidePanelExpandablePanels({
     onExportFlowchart,
     onImportFlowchart,
     onClearFlowchart,
-    activeCanvasId,
     snapToGrid,
     onSnapToGridChange,
     onResetLocalStorage,
@@ -94,7 +92,6 @@ function SidePanelExpandablePanels({
                         onExportFlowchart={onExportFlowchart}
                         onImportFlowchart={onImportFlowchart}
                         onClearFlowchart={onClearFlowchart}
-                        activeCanvasId={activeCanvasId}
                         snapToGrid={snapToGrid}
                         onSnapToGridChange={onSnapToGridChange}
                         onResetLocalStorage={onResetLocalStorage}
