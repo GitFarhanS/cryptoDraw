@@ -76,7 +76,6 @@ Pan the canvas by dragging empty space; zoom with the mouse wheel; use the mini-
 - [Vite](https://vite.dev/) for dev server and bundling.
 - [Vitest](https://vitest.dev/) for unit tests on graph evaluation and flowchart serialization.
 - [ESLint](https://eslint.org/) with the `react-hooks` and `react-refresh` plugins.
-- [gh-pages](https://github.com/tschaub/gh-pages) plus a GitHub Actions workflow for automatic deployment.
 
 The graph evaluator and flowchart import/export are pure JS modules under `src/graph/` and are covered by unit tests.
 
