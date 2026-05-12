@@ -366,6 +366,82 @@ export function evaluateGraph(
             continue;
         }
 
+        if (type === 'counterIncrementBe') {
+            const input = getPort(blockId, 'in');
+            if (input.length === 0) {
+                setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                continue;
+            }
+            const wRaw = block.counterIncWidth ?? 4;
+            const w = Math.min(16, Math.max(1, Math.floor(Number(wRaw)) || 4));
+            if (input.length < w) {
+                note(
+                    `Counter increment ${blockId}: input length ${input.length} is shorter than counter width ${w}.`
+                );
+                setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                continue;
+            }
+            const out = new Uint8Array(input);
+            let carry = 1;
+            for (let i = out.length - 1; i >= out.length - w; i--) {
+                const sum = out[i]! + carry;
+                out[i] = sum & 0xff;
+                carry = sum >>> 8;
+            }
+            if (carry !== 0) {
+                note(
+                    `Counter increment ${blockId}: carry out of the ${w}-byte counter field (wrapped modulo 2^${w * 8}).`
+                );
+            }
+            const inFmt = getPortFormat(blockId, 'in') ?? 'hex';
+            const inBits = getPortBitLength(blockId, 'in') ?? input.length * 8;
+            setPort(blockId, 'out', out, {
+                format: inFmt,
+                bitLength: inBits,
+            });
+            continue;
+        }
+
+        if (type === 'xorBytes') {
+            const a = getPort(blockId, 'in:a');
+            const b = getPort(blockId, 'in:b');
+            if (a.length !== b.length) {
+                note(
+                    `XOR bytes ${blockId}: length mismatch (a=${a.length}, b=${b.length}).`
+                );
+                setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                continue;
+            }
+            const out = new Uint8Array(a.length);
+            for (let i = 0; i < a.length; i++) {
+                out[i] = a[i]! ^ b[i]!;
+            }
+            const fa = getPortFormat(blockId, 'in:a');
+            const fb = getPortFormat(blockId, 'in:b');
+            const outFmt = fa && fb && fa === fb ? fa : 'hex';
+            const ba = getPortBitLength(blockId, 'in:a') ?? a.length * 8;
+            const bb = getPortBitLength(blockId, 'in:b') ?? b.length * 8;
+            setPort(blockId, 'out', out, {
+                format: outFmt,
+                bitLength: outFmt === 'binary' ? Math.max(ba, bb) : out.length * 8,
+            });
+            continue;
+        }
+
+        if (type === 'concatBytes') {
+            const a = getPort(blockId, 'in:a');
+            const b = getPort(blockId, 'in:b');
+            const out = new Uint8Array(a.length + b.length);
+            out.set(a, 0);
+            out.set(b, a.length);
+            const fa = getPortFormat(blockId, 'in:a') ?? 'hex';
+            setPort(blockId, 'out', out, {
+                format: fa,
+                bitLength: out.length * 8,
+            });
+            continue;
+        }
+
         if (SBOX_BLOCK_TYPES.includes(type as (typeof SBOX_BLOCK_TYPES)[number])) {
             const input = getPort(blockId, 'in')
             const outBytes = applySubBytes(input)

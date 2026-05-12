@@ -273,4 +273,43 @@ describe('evaluateGraph data transfer', () => {
         expect(result.portFormats.size).toBe(0);
         expect(result.portBitLengths.size).toBe(0);
     });
+
+    it('counterIncrementBe increments last N bytes big-endian', () => {
+        const blocks = [
+            { id: 'src', type: 'hex', x: 0, y: 0, text: '000000ff' },
+            { id: 'ctr', type: 'counterIncrementBe', x: 0, y: 0, counterIncWidth: 4 },
+        ];
+        const edges = [edge('e1', 'src', 'out', 'ctr', 'in')];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('ctr\0out');
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('00000100');
+    });
+
+    it('xorBytes xors equal-length buffers', () => {
+        const blocks = [
+            { id: 'a', type: 'hex', x: 0, y: 0, text: 'aa55' },
+            { id: 'b', type: 'hex', x: 0, y: 0, text: 'ff00' },
+            { id: 'x', type: 'xorBytes', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'a', 'out', 'x', 'in:a'),
+            edge('e2', 'b', 'out', 'x', 'in:b'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        expect(serializeBytesToFormat('hex', result.portBytes.get('x\0out')!)).toBe('5555');
+    });
+
+    it('concatBytes appends B after A', () => {
+        const blocks = [
+            { id: 'a', type: 'hex', x: 0, y: 0, text: 'dead' },
+            { id: 'b', type: 'hex', x: 0, y: 0, text: 'beef' },
+            { id: 'c', type: 'concatBytes', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'a', 'out', 'c', 'in:a'),
+            edge('e2', 'b', 'out', 'c', 'in:b'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        expect(serializeBytesToFormat('hex', result.portBytes.get('c\0out')!)).toBe('deadbeef');
+    });
 });

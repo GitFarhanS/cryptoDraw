@@ -140,6 +140,9 @@ function sanitizeBlocks(blocks: unknown[]) {
         if (Number.isFinite(Number(candidate.joinCount))) {
             next.joinCount = clampInt(candidate.joinCount, 1, 24);
         }
+        if (Number.isFinite(Number(candidate.counterIncWidth))) {
+            next.counterIncWidth = clampInt(candidate.counterIncWidth, 1, 16);
+        }
 
         return next;
     });

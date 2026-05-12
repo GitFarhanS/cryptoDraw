@@ -27,6 +27,8 @@ export interface PlacedBlockRecord {
     opDisplayMode?: 'auto' | 'manual';
     opDisplayFormat?: DataFormat;
     opShiftMode?: 'logical' | 'circular';
+    /** Last N bytes of buffer treated as big-endian counter for `counterIncrementBe`. */
+    counterIncWidth?: number;
 }
 
 export interface WireDragState {

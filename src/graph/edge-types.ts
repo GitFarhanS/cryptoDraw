@@ -1,6 +1,7 @@
 import {
     CONVERTER_BLOCK_TYPES,
     INPUT_BLOCK_TYPES,
+    MODE_HELPER_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
     SBOX_BLOCK_TYPES,
     OUTPUT_BLOCK_TYPES,
@@ -33,6 +34,7 @@ export function outputPortKeysForBlock(
     if (
         CONVERTER_BLOCK_TYPES.includes(blockType as (typeof CONVERTER_BLOCK_TYPES)[number]) ||
         SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number]) ||
+        MODE_HELPER_BLOCK_TYPES.includes(blockType as (typeof MODE_HELPER_BLOCK_TYPES)[number]) ||
         OPERATION_BLOCK_TYPES.includes(blockType as (typeof OPERATION_BLOCK_TYPES)[number]) ||
         OUTPUT_BLOCK_TYPES.includes(blockType as (typeof OUTPUT_BLOCK_TYPES)[number])
     ) {
@@ -53,6 +55,12 @@ export function inputPortKeysForBlock(
     }
     if (blockType === 'splitIntoLots' || blockType === 'formatConvert' || blockType === 'output') {
         return ['in'];
+    }
+    if (blockType === 'counterIncrementBe') {
+        return ['in'];
+    }
+    if (blockType === 'xorBytes' || blockType === 'concatBytes') {
+        return ['in:a', 'in:b'];
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
         return ['in']

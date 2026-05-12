@@ -34,6 +34,9 @@ export function createPlacedBlock(type: string, x: number, y: number): PlacedBlo
             fcOutputFormat: 'ascii',
         };
     }
+    if (type === 'counterIncrementBe') {
+        return { ...base, counterIncWidth: 4 };
+    }
     if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {
         return {
             ...base,

@@ -8,6 +8,9 @@ import AsciiBlock from './input-blocks/ascii-block';
 import BinaryBlock from './input-blocks/binary-block';
 import DecimalBlock from './input-blocks/decimal-block';
 import HexBlock from './input-blocks/hex-block';
+import ConcatBytesBlock from './mode-block/concat-bytes-block';
+import CounterIncrementBeBlock from './mode-block/counter-increment-be-block';
+import XorBytesBlock from './mode-block/xor-bytes-block';
 import OperationBlock from './operations-block/operation-block';
 import { OPERATION_DEFINITIONS } from './operations-block/operation-definitions';
 import OutputBlock from './output-block/output-block';
@@ -31,6 +34,9 @@ const BLOCK_BY_TYPE: Record<string, any> = {
     joinLots: JoinLotsBlock,
     formatConvert: FormatConvertBlock,
     subBytes: SubBytesBlock,
+    counterIncrementBe: CounterIncrementBeBlock,
+    xorBytes: XorBytesBlock,
+    concatBytes: ConcatBytesBlock,
     output: OutputBlock,
     ...OPERATION_BLOCKS_BY_TYPE,
 };
