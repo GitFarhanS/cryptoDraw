@@ -16,6 +16,10 @@ export const OPERATION_BLOCK_TYPES = [
     'opPow',
     'opAdd',
     'opMul',
+    'opAddBig',
+    'opMulBig',
+    'opModBig',
+    'opPowBig',
 ] as const;
 
 export const OUTPUT_BLOCK_TYPES = ['output'] as const;

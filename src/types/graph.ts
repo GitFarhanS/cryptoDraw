@@ -27,6 +27,8 @@ export interface PlacedBlockRecord {
     opDisplayMode?: 'auto' | 'manual';
     opDisplayFormat?: DataFormat;
     opShiftMode?: 'logical' | 'circular';
+    /** Big-int op blocks: 0 = minimal-width big-endian output; otherwise pad to this many bytes. */
+    opBigPadBytes?: number;
 }
 
 export interface WireDragState {

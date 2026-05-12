@@ -273,4 +273,34 @@ describe('evaluateGraph data transfer', () => {
         expect(result.portFormats.size).toBe(0);
         expect(result.portBitLengths.size).toBe(0);
     });
+
+    it('opAddBig sums beyond 32-bit unsigned range', () => {
+        const blocks = [
+            { id: 'a', type: 'hex', x: 0, y: 0, text: 'ffffffff' },
+            { id: 'b', type: 'hex', x: 0, y: 0, text: '00000002' },
+            { id: 'add', type: 'opAddBig', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'a', 'out', 'add', 'in:a'),
+            edge('e2', 'b', 'out', 'add', 'in:b'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('add\0out');
+        expect(bytes).toBeDefined();
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('0100000001');
+    });
+
+    it('opPowBig rejects exponent above cap', () => {
+        const blocks = [
+            { id: 'a', type: 'hex', x: 0, y: 0, text: '02' },
+            { id: 'b', type: 'hex', x: 0, y: 0, text: '0201' },
+            { id: 'p', type: 'opPowBig', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'a', 'out', 'p', 'in:a'),
+            edge('e2', 'b', 'out', 'p', 'in:b'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        expect(result.diagnostics.some((d) => d.includes('Exponent'))).toBe(true);
+    });
 });

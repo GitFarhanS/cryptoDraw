@@ -40,6 +40,7 @@ export function createPlacedBlock(type: string, x: number, y: number): PlacedBlo
             opDisplayMode: 'auto',
             opDisplayFormat: 'hex',
             opShiftMode: 'logical',
+            opBigPadBytes: 0,
         };
     }
 

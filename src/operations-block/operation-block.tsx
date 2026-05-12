@@ -38,6 +38,11 @@ function OperationBlock({
     const manualFormat = isCanvas ? (block.opDisplayFormat ?? 'hex') : 'hex';
     const shiftMode = isCanvas ? (block.opShiftMode ?? 'logical') : 'logical';
     const supportsShiftMode = blockType === 'opLeftShift' || blockType === 'opRightShift';
+    const supportsBigIntPad =
+        blockType === 'opAddBig' ||
+        blockType === 'opMulBig' ||
+        blockType === 'opModBig' ||
+        blockType === 'opPowBig';
     let autoFormat = inFmtA ?? inFmtB ?? 'hex';
     if (inFmtA && inFmtB && inFmtA !== inFmtB) {
         autoFormat = 'hex';
@@ -99,6 +104,37 @@ function OperationBlock({
                         Result ({effectiveFormat})
                     </label>
                     <div className="converter-block-row">
+                        {supportsBigIntPad ? (
+                            <div>
+                                <label
+                                    className="converter-block-label"
+                                    htmlFor={`${id}-big-pad`}
+                                >
+                                    Pad output (bytes)
+                                </label>
+                                <input
+                                    id={`${id}-big-pad`}
+                                    type="number"
+                                    min={0}
+                                    max={64}
+                                    className="input-block-field"
+                                    value={block.opBigPadBytes ?? 0}
+                                    onChange={(e) => {
+                                        const v = Number.parseInt(e.target.value, 10);
+                                        onBlockPatch?.({
+                                            opBigPadBytes: Number.isFinite(v)
+                                                ? Math.min(64, Math.max(0, v))
+                                                : 0,
+                                        });
+                                    }}
+                                    aria-label="Big-int output padding in bytes (0 = minimal width)"
+                                />
+                                <p className="input-block-hint">
+                                    0 = minimal big-endian width; otherwise zero-pad to this many bytes
+                                    (hex/decimal/ascii only).
+                                </p>
+                            </div>
+                        ) : null}
                         {supportsShiftMode ? (
                             <div>
                                 <label

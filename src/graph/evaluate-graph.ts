@@ -4,6 +4,14 @@ import {
     SBOX_BLOCK_TYPES,
 } from '../input-blocks/drag-constants';
 import { parseBytesFromFormat, serializeBytesToFormat } from '../converter-block/format-bytes';
+import {
+    BIGINT_OP_MAX_BINARY_BITS,
+    BIGINT_OP_MAX_INPUT_BYTES,
+    bigIntBitLength,
+    bigIntToBytesBE,
+    bigPowLimited,
+    bytesToBigIntBE,
+} from '../operations-block/bigint-bytes';
 import { applySubBytes } from '../sbox-block/aes-sbox';
 import {
     inputPortKeysForBlock,
@@ -128,6 +136,10 @@ export interface GraphEvaluation {
     diagnostics: string[];
 }
 
+function isBigIntOperation(type: string) {
+    return type === 'opAddBig' || type === 'opMulBig' || type === 'opModBig' || type === 'opPowBig';
+}
+
 export function evaluateGraph(
     placedBlocks: PlacedBlockRecord[],
     edges: GraphEdge[]
@@ -250,6 +262,37 @@ export function evaluateGraph(
             return Number.parseInt(bits, 2) >>> 0;
         }
         return bytesToUintBE(bytes);
+    }
+
+    function readBigIntOperand(blockId: string, portKey: string): bigint | null {
+        const bytes = getPort(blockId, portKey);
+        const format = getPortFormat(blockId, portKey);
+        if (format === 'binary') {
+            const bitLength = getPortBitLength(blockId, portKey) ?? bytes.length * 8;
+            if (bitLength > BIGINT_OP_MAX_BINARY_BITS) {
+                note(
+                    `Big-int op ${blockId}: ${portKey} binary operand exceeds ${BIGINT_OP_MAX_BINARY_BITS} bits.`
+                );
+                return null;
+            }
+            const bits = bytesToBitString(bytes, bitLength);
+            try {
+                if (!bits.length) {
+                    return 0n;
+                }
+                return BigInt(`0b${bits}`);
+            } catch {
+                note(`Big-int op ${blockId}: ${portKey} has invalid binary payload.`);
+                return null;
+            }
+        }
+        if (bytes.length > BIGINT_OP_MAX_INPUT_BYTES) {
+            note(
+                `Big-int op ${blockId}: ${portKey} exceeds ${BIGINT_OP_MAX_INPUT_BYTES} bytes (got ${bytes.length}).`
+            );
+            return null;
+        }
+        return bytesToBigIntBE(bytes);
     }
 
     for (const blockId of order) {
@@ -377,19 +420,79 @@ export function evaluateGraph(
         }
 
         if (OPERATION_BLOCK_TYPES.includes(type as (typeof OPERATION_BLOCK_TYPES)[number])) {
-            const a = getPortAsUint(blockId, 'in:a');
-            const b = getPortAsUint(blockId, 'in:b');
             const inFmtA = getPortFormat(blockId, 'in:a');
             const inFmtB = getPortFormat(blockId, 'in:b');
             const inBitsA = getPortBitLength(blockId, 'in:a') ?? 0;
             const inBitsB = getPortBitLength(blockId, 'in:b') ?? 0;
-            const shiftMode = block.opShiftMode ?? 'logical';
             const outFmt = resolveOperationFormat(
                 inFmtA,
                 inFmtB,
                 block.opDisplayMode ?? 'auto',
                 block.opDisplayFormat ?? 'hex'
             );
+
+            if (isBigIntOperation(type)) {
+                const aBig = readBigIntOperand(blockId, 'in:a');
+                const bBig = readBigIntOperand(blockId, 'in:b');
+                if (aBig === null || bBig === null) {
+                    setPort(blockId, 'out', EMPTY, { format: outFmt, bitLength: 0 });
+                    continue;
+                }
+                let outBig: bigint;
+                try {
+                    switch (type) {
+                        case 'opAddBig':
+                            outBig = aBig + bBig;
+                            break;
+                        case 'opMulBig':
+                            outBig = aBig * bBig;
+                            break;
+                        case 'opModBig':
+                            outBig = bBig === 0n ? 0n : aBig % bBig;
+                            break;
+                        case 'opPowBig':
+                            outBig = bigPowLimited(aBig, bBig, 512n);
+                            break;
+                        default:
+                            outBig = 0n;
+                    }
+                } catch (err) {
+                    note(
+                        `${type} ${blockId}: ${err instanceof Error ? err.message : 'evaluation failed.'}`
+                    );
+                    setPort(blockId, 'out', EMPTY, { format: outFmt, bitLength: 0 });
+                    continue;
+                }
+                const padRaw = block.opBigPadBytes ?? 0;
+                const paddedWidth = padRaw > 0 ? padRaw : undefined;
+                try {
+                    if (outFmt === 'binary') {
+                        const bits = outBig === 0n ? '0' : outBig.toString(2);
+                        const outBitLength = Math.max(bigIntBitLength(outBig), inBitsA, inBitsB, 1);
+                        const paddedBits = bits.padStart(outBitLength, '0');
+                        setPort(blockId, 'out', bitStringToBytes(paddedBits), {
+                            format: 'binary',
+                            bitLength: outBitLength,
+                        });
+                    } else {
+                        const outBytes = bigIntToBytesBE(outBig, paddedWidth);
+                        setPort(blockId, 'out', outBytes, {
+                            format: outFmt,
+                            bitLength: outBytes.length * 8,
+                        });
+                    }
+                } catch (err) {
+                    note(
+                        `${type} ${blockId}: ${err instanceof Error ? err.message : 'could not encode result.'}`
+                    );
+                    setPort(blockId, 'out', EMPTY, { format: outFmt, bitLength: 0 });
+                }
+                continue;
+            }
+
+            const a = getPortAsUint(blockId, 'in:a');
+            const b = getPortAsUint(blockId, 'in:b');
+            const shiftMode = block.opShiftMode ?? 'logical';
             let out: number;
             switch (type) {
                 case 'opXor':

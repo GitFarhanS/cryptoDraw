@@ -39,4 +39,24 @@ export const OPERATION_DEFINITIONS = [
         title: 'Multiplication',
         hint: 'Multiply two numbers. Wiring for operands and output comes later.',
     },
+    {
+        blockType: 'opAddBig',
+        title: 'Addition (big int)',
+        hint: 'Add two unsigned big-endian integers (wider than 32-bit). Operand byte length up to 64.',
+    },
+    {
+        blockType: 'opMulBig',
+        title: 'Multiplication (big int)',
+        hint: 'Multiply two unsigned big-endian integers. Operand byte length up to 64.',
+    },
+    {
+        blockType: 'opModBig',
+        title: 'MOD (big int)',
+        hint: 'Remainder after dividing two unsigned big integers. Divisor zero yields zero.',
+    },
+    {
+        blockType: 'opPowBig',
+        title: 'Exponentiation (big int)',
+        hint: 'Raise base to exponent (both unsigned big integers). Exponent capped at 512.',
+    },
 ];

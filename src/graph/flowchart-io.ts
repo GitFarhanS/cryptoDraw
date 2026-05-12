@@ -134,6 +134,9 @@ function sanitizeBlocks(blocks: unknown[]) {
         if (OP_SHIFT_MODES.includes(candidate.opShiftMode ?? 'logical')) {
             next.opShiftMode = candidate.opShiftMode;
         }
+        if (Number.isFinite(Number(candidate.opBigPadBytes))) {
+            next.opBigPadBytes = clampInt(candidate.opBigPadBytes, 0, 64);
+        }
         if (Number.isFinite(Number(candidate.blockCount))) {
             next.blockCount = clampInt(candidate.blockCount, 1, 24);
         }
