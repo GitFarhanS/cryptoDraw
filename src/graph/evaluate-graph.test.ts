@@ -273,4 +273,34 @@ describe('evaluateGraph data transfer', () => {
         expect(result.portFormats.size).toBe(0);
         expect(result.portBitLengths.size).toBe(0);
     });
+
+    it('sha256 block hashes empty input', () => {
+        const blocks = [
+            { id: 'src', type: 'ascii', x: 0, y: 0, text: '' },
+            { id: 'h', type: 'sha256', x: 0, y: 0 },
+        ];
+        const edges = [edge('e1', 'src', 'out', 'h', 'in')];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('h\0out');
+        expect(serializeBytesToFormat('hex', bytes!)).toBe(
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        );
+    });
+
+    it('hmacSha256 block matches RFC 4231 vector', () => {
+        const keyHex = '0b'.repeat(20);
+        const blocks = [
+            { id: 'key', type: 'hex', x: 0, y: 0, text: keyHex },
+            { id: 'msg', type: 'ascii', x: 0, y: 0, text: 'Hi There' },
+            { id: 'h', type: 'hmacSha256', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'key', 'out', 'h', 'in:key'),
+            edge('e2', 'msg', 'out', 'h', 'in:message'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        expect(serializeBytesToFormat('hex', result.portBytes.get('h\0out')!)).toBe(
+            'b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7'
+        );
+    });
 });

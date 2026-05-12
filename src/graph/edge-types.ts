@@ -1,5 +1,6 @@
 import {
     CONVERTER_BLOCK_TYPES,
+    HASH_BLOCK_TYPES,
     INPUT_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
     SBOX_BLOCK_TYPES,
@@ -33,6 +34,7 @@ export function outputPortKeysForBlock(
     if (
         CONVERTER_BLOCK_TYPES.includes(blockType as (typeof CONVERTER_BLOCK_TYPES)[number]) ||
         SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number]) ||
+        HASH_BLOCK_TYPES.includes(blockType as (typeof HASH_BLOCK_TYPES)[number]) ||
         OPERATION_BLOCK_TYPES.includes(blockType as (typeof OPERATION_BLOCK_TYPES)[number]) ||
         OUTPUT_BLOCK_TYPES.includes(blockType as (typeof OUTPUT_BLOCK_TYPES)[number])
     ) {
@@ -53,6 +55,12 @@ export function inputPortKeysForBlock(
     }
     if (blockType === 'splitIntoLots' || blockType === 'formatConvert' || blockType === 'output') {
         return ['in'];
+    }
+    if (blockType === 'sha256') {
+        return ['in'];
+    }
+    if (blockType === 'hmacSha256') {
+        return ['in:key', 'in:message'];
     }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
         return ['in']

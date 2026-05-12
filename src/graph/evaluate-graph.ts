@@ -4,6 +4,7 @@ import {
     SBOX_BLOCK_TYPES,
 } from '../input-blocks/drag-constants';
 import { parseBytesFromFormat, serializeBytesToFormat } from '../converter-block/format-bytes';
+import { hmacSha256, sha256 } from '../hash-block/sha256';
 import { applySubBytes } from '../sbox-block/aes-sbox';
 import {
     inputPortKeysForBlock,
@@ -363,6 +364,37 @@ export function evaluateGraph(
         }
 
         if (type === 'output') {
+            continue;
+        }
+
+        if (type === 'sha256') {
+            const msg = getPort(blockId, 'in');
+            try {
+                const digest = sha256(msg);
+                setPort(blockId, 'out', digest, {
+                    format: 'hex',
+                    bitLength: 256,
+                });
+            } catch (err) {
+                note(`SHA-256 ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`);
+                setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+            }
+            continue;
+        }
+
+        if (type === 'hmacSha256') {
+            const key = getPort(blockId, 'in:key');
+            const msg = getPort(blockId, 'in:message');
+            try {
+                const digest = hmacSha256(key, msg);
+                setPort(blockId, 'out', digest, {
+                    format: 'hex',
+                    bitLength: 256,
+                });
+            } catch (err) {
+                note(`HMAC-SHA256 ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`);
+                setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+            }
             continue;
         }
 
