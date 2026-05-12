@@ -273,4 +273,32 @@ describe('evaluateGraph data transfer', () => {
         expect(result.portFormats.size).toBe(0);
         expect(result.portBitLengths.size).toBe(0);
     });
+
+    it('gf256 multiply combines two single-byte inputs', () => {
+        const blocks = [
+            { id: 'a', type: 'hex', x: 0, y: 0, text: '53' },
+            { id: 'b', type: 'hex', x: 0, y: 0, text: 'ca' },
+            { id: 'g', type: 'gf256MulBytes', x: 0, y: 0 },
+        ];
+        const edges = [
+            edge('e1', 'a', 'out', 'g', 'in:a'),
+            edge('e2', 'b', 'out', 'g', 'in:b'),
+        ];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('g\0out');
+        expect(bytes).toBeDefined();
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('01');
+    });
+
+    it('gf256 mixcolumn maps a 4-byte column', () => {
+        const blocks = [
+            { id: 'src', type: 'hex', x: 0, y: 0, text: 'd4bf5d30' },
+            { id: 'm', type: 'gf256MixColumn', x: 0, y: 0 },
+        ];
+        const edges = [edge('e1', 'src', 'out', 'm', 'in')];
+        const result = evaluateGraph(blocks as any, edges as any);
+        const bytes = result.portBytes.get('m\0out');
+        expect(bytes).toBeDefined();
+        expect(serializeBytesToFormat('hex', bytes!)).toBe('046681e5');
+    });
 });

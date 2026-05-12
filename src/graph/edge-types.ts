@@ -1,5 +1,6 @@
 import {
     CONVERTER_BLOCK_TYPES,
+    FIELD_BLOCK_TYPES,
     INPUT_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
     SBOX_BLOCK_TYPES,
@@ -33,6 +34,7 @@ export function outputPortKeysForBlock(
     if (
         CONVERTER_BLOCK_TYPES.includes(blockType as (typeof CONVERTER_BLOCK_TYPES)[number]) ||
         SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number]) ||
+        FIELD_BLOCK_TYPES.includes(blockType as (typeof FIELD_BLOCK_TYPES)[number]) ||
         OPERATION_BLOCK_TYPES.includes(blockType as (typeof OPERATION_BLOCK_TYPES)[number]) ||
         OUTPUT_BLOCK_TYPES.includes(blockType as (typeof OUTPUT_BLOCK_TYPES)[number])
     ) {
@@ -54,8 +56,14 @@ export function inputPortKeysForBlock(
     if (blockType === 'splitIntoLots' || blockType === 'formatConvert' || blockType === 'output') {
         return ['in'];
     }
+    if (blockType === 'gf256MulBytes') {
+        return ['in:a', 'in:b'];
+    }
+    if (blockType === 'gf256MixColumn') {
+        return ['in'];
+    }
     if (SBOX_BLOCK_TYPES.includes(blockType as (typeof SBOX_BLOCK_TYPES)[number])) {
-        return ['in']
+        return ['in'];
     }
     if (blockType === 'joinLots') {
         const k = clampInt(params.joinCount, 1, 24, 2);

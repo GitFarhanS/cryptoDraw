@@ -10,6 +10,8 @@ import DecimalBlock from './input-blocks/decimal-block';
 import HexBlock from './input-blocks/hex-block';
 import OperationBlock from './operations-block/operation-block';
 import { OPERATION_DEFINITIONS } from './operations-block/operation-definitions';
+import Gf256MixColumnBlock from './field-block/gf256-mix-column-block';
+import Gf256MulBlock from './field-block/gf256-mul-block';
 import OutputBlock from './output-block/output-block';
 import SubBytesBlock from './sbox-block/sub-bytes-block';
 
@@ -31,6 +33,8 @@ const BLOCK_BY_TYPE: Record<string, any> = {
     joinLots: JoinLotsBlock,
     formatConvert: FormatConvertBlock,
     subBytes: SubBytesBlock,
+    gf256MulBytes: Gf256MulBlock,
+    gf256MixColumn: Gf256MixColumnBlock,
     output: OutputBlock,
     ...OPERATION_BLOCKS_BY_TYPE,
 };

@@ -1,9 +1,11 @@
 import {
+    FIELD_BLOCK_TYPES,
     INPUT_BLOCK_TYPES,
     OPERATION_BLOCK_TYPES,
     SBOX_BLOCK_TYPES,
 } from '../input-blocks/drag-constants';
 import { parseBytesFromFormat, serializeBytesToFormat } from '../converter-block/format-bytes';
+import { gfMul, mixColumnBytes } from '../field-block/gf256';
 import { applySubBytes } from '../sbox-block/aes-sbox';
 import {
     inputPortKeysForBlock,
@@ -364,6 +366,50 @@ export function evaluateGraph(
 
         if (type === 'output') {
             continue;
+        }
+
+        if (FIELD_BLOCK_TYPES.includes(type as (typeof FIELD_BLOCK_TYPES)[number])) {
+            if (type === 'gf256MulBytes') {
+                const a = getPort(blockId, 'in:a');
+                const b = getPort(blockId, 'in:b');
+                if (a.length !== 1 || b.length !== 1) {
+                    if (a.length !== 1) {
+                        note(`GF multiply ${blockId}: in:a must be exactly 1 byte (got ${a.length}).`);
+                    }
+                    if (b.length !== 1) {
+                        note(`GF multiply ${blockId}: in:b must be exactly 1 byte (got ${b.length}).`);
+                    }
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                } else {
+                    const out = new Uint8Array([gfMul(a[0]!, b[0]!)]);
+                    setPort(blockId, 'out', out, {
+                        format: 'hex',
+                        bitLength: 8,
+                    });
+                }
+                continue;
+            }
+            if (type === 'gf256MixColumn') {
+                const input = getPort(blockId, 'in');
+                if (input.length !== 4) {
+                    note(`GF MixColumn ${blockId}: input must be exactly 4 bytes (got ${input.length}).`);
+                    setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                } else {
+                    try {
+                        const outBytes = mixColumnBytes(input);
+                        setPort(blockId, 'out', outBytes, {
+                            format: 'hex',
+                            bitLength: 32,
+                        });
+                    } catch (err) {
+                        note(
+                            `GF MixColumn ${blockId}: ${err instanceof Error ? err.message : 'failed.'}`
+                        );
+                        setPort(blockId, 'out', EMPTY, { format: 'hex', bitLength: 0 });
+                    }
+                }
+                continue;
+            }
         }
 
         if (SBOX_BLOCK_TYPES.includes(type as (typeof SBOX_BLOCK_TYPES)[number])) {

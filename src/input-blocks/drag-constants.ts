@@ -7,6 +7,8 @@ export const CONVERTER_BLOCK_TYPES = ['splitIntoLots', 'joinLots', 'formatConver
 
 export const SBOX_BLOCK_TYPES = ['subBytes'] as const;
 
+export const FIELD_BLOCK_TYPES = ['gf256MulBytes', 'gf256MixColumn'] as const;
+
 export const OPERATION_BLOCK_TYPES = [
     'opXor',
     'opLeftShift',
@@ -24,6 +26,7 @@ export const PLACED_BLOCK_TYPES = [
     ...INPUT_BLOCK_TYPES,
     ...CONVERTER_BLOCK_TYPES,
     ...SBOX_BLOCK_TYPES,
+    ...FIELD_BLOCK_TYPES,
     ...OPERATION_BLOCK_TYPES,
     ...OUTPUT_BLOCK_TYPES,
 ] as const;
