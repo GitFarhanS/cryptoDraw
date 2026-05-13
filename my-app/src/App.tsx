@@ -16,11 +16,16 @@ import '@xyflow/react/dist/style.css';
 
 import BinaryNode from './inputs/binary';
 import XorNode from './operations/xor';
+import AndNode from './operations/and';
+import RotateLeftNode from './operations/rotate-left';
 import ResultNode from './result/result';
+
 
 const nodeTypes = {
   binaryNode: BinaryNode,
   xorNode: XorNode,
+  andNode: AndNode,
+  rotateLeftNode: RotateLeftNode,
   resultNode: ResultNode,
 };
 
@@ -41,6 +46,18 @@ const initialNodes: Node[] = [
     id: 'xor-1',
     type: 'xorNode',
     position: { x: 200, y: 150 },
+    data: { result: null },
+  },
+  {
+    id: 'and-1',
+    type: 'andNode',
+    position: { x: 250, y: 150 },
+    data: { result: null },
+  },
+  {
+    id: 'rotate-1',
+    type: 'rotateLeftNode',
+    position: { x: 300, y: 150 },
     data: { result: null },
   },
   {
