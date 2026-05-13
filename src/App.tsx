@@ -1,18 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import {
   ReactFlow,
-  Controls,
-  Background,
-  applyNodeChanges,
-  applyEdgeChanges,
+  ReactFlowProvider,
   addEdge,
-  type Node,
-  type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  useReactFlow,
+  Background,
   type OnConnect,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+
+import Sidebar from './sidebar';
+import { DnDProvider, useDnD } from './DnDContext';
 
 import BinaryNode from './inputs/binary';
 import XorNode from './operations/xor';
@@ -29,84 +30,106 @@ const nodeTypes = {
   resultNode: ResultNode,
 };
 
-const initialNodes: Node[] = [
-  {
-    id: 'binary-1',
-    type: 'binaryNode',
-    position: { x: 100, y: 0 },
-    data: { binary: 0 },
-  },
-  {
-    id: 'binary-2',
-    type: 'binaryNode',
-    position: { x: 300, y: 0 },
-    data: { binary: 1 },
-  },
-  {
-    id: 'xor-1',
-    type: 'xorNode',
-    position: { x: 200, y: 150 },
-    data: { result: null },
-  },
-  {
-    id: 'and-1',
-    type: 'andNode',
-    position: { x: 250, y: 150 },
-    data: { result: null },
-  },
-  {
-    id: 'rotate-1',
-    type: 'rotateLeftNode',
-    position: { x: 300, y: 150 },
-    data: { result: null },
-  },
-  {
-    id: 'result-1',
-    type: 'resultNode',
-    position: { x: 200, y: 300 },
-    data: {},
-  },
-];
+// default data per node type when dropped
+const defaultData: Record<string, object> = {
+  binaryNode:     { binary: '0' },
+  xorNode:        { result: null },
+  andNode:        { result: null },
+  rotateLeftNode: { result: null },
+  resultNode:     {},
+};
 
-const initialEdges: Edge[] = [
-  { id: 'e1', source: 'binary-1', target: 'xor-1', targetHandle: 'a' },
-  { id: 'e2', source: 'binary-2', target: 'xor-1', targetHandle: 'b' },
-  { id: 'e3', source: 'xor-1',    target: 'result-1' },
-];
+let id = 0;
+const getId = () => `node_${id++}`;
 
-function Flow() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+function DnDFlow() {
+  const reactFlowWrapper = useRef(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { screenToFlowPosition } = useReactFlow();
+  const [type] = useDnD();
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [],
-  );
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
-  );
   const onConnect: OnConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [],
+    (params) =>
+      setEdges((eds) => {
+        const targetNode = nodes.find((n) => n.id === params.target);
+        const singleInputTypes = ['resultNode', 'xorNode', 'andNode', 'rotateLeftNode'];
+  
+        const isSingleInput = singleInputTypes.includes(targetNode?.type ?? '');
+  
+        // for nodes with named handles (a/b), only boot the edge on the same handle
+        const hasNamedHandles = ['xorNode', 'andNode', 'rotateLeftNode'].includes(targetNode?.type ?? '');
+  
+        const filtered = isSingleInput
+          ? eds.filter((e) => {
+              if (e.target !== params.target) return true;
+              if (hasNamedHandles) return e.targetHandle !== params.targetHandle;
+              return false;
+            })
+          : eds;
+  
+        return addEdge(params, filtered);
+      }),
+    [nodes, setEdges],
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      if (!type) return;
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const newNode = {
+        id: getId(),
+        type,
+        position,
+        data: defaultData[type] ?? {},
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [screenToFlowPosition, type],
   );
 
   return (
-    <div style={{ height: '100%' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+      <Sidebar />
+      <div ref={reactFlowWrapper} style={{ flex: 1 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          fitView
+        >
+          <Controls />
+          <Background />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
 
-export default Flow;
+export default function App() {
+  return (
+    <ReactFlowProvider>
+      <DnDProvider>
+        <DnDFlow />
+      </DnDProvider>
+    </ReactFlowProvider>
+  );
+}
