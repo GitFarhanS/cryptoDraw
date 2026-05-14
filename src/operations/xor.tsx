@@ -9,9 +9,16 @@ import {
   type Node,
 } from '@xyflow/react';
 
-type BinaryNode = Node<{ binary: string }, 'binaryNode'>;
-
 type XorNodeData = { result: string | null };
+
+/** Binary inputs use `binary`; operation nodes (e.g. XOR) expose computed bits on `result`. */
+function bitsFromUpstreamData(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  const d = data as { binary?: string; result?: string | null };
+  if (typeof d.binary === 'string') return d.binary;
+  if (typeof d.result === 'string') return d.result;
+  return '';
+}
 
 const xorBinary = (a: string, b: string): string => {
   const len = Math.max(a.length, b.length);
@@ -27,11 +34,11 @@ const xorBinary = (a: string, b: string): string => {
 function XorNode({ id }: NodeProps<Node<XorNodeData>>) {
   const { updateNodeData } = useReactFlow();
   const connections = useNodeConnections({ handleType: 'target' });
-  const nodesData = useNodesData<BinaryNode>(
+  const nodesData = useNodesData<Node>(
     connections.map((c) => c.source),
   );
 
-  const [a, b] = nodesData.map((n) => String(n.data.binary ?? ''));
+  const [a, b] = nodesData.map((n) => bitsFromUpstreamData(n?.data));
 
   const result =
     nodesData.length === 2 && /^[01]+$/.test(a) && /^[01]+$/.test(b)

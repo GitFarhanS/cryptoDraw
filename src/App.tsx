@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,11 +9,22 @@ import {
   useReactFlow,
   Background,
   type OnConnect,
+  type Node,
+  type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import Sidebar from './sidebar';
 import { DnDProvider, useDnD } from './DnDContext';
+import FunctionalCookieBanner from './FunctionalCookieBanner';
+import {
+  type FunctionalConsent,
+  readFunctionalConsent,
+  setFunctionalConsentCookie,
+  loadPersistedBoard,
+  savePersistedBoard,
+  clearPersistedBoard,
+} from './functionalStorage';
 
 import BinaryNode from './inputs/binary';
 import XorNode from './operations/xor';
@@ -42,12 +53,128 @@ const defaultData: Record<string, object> = {
 let id = 0;
 const getId = () => `node_${id++}`;
 
-function DnDFlow() {
+let edgeId = 0;
+const getEdgeId = () => `edge_${edgeId++}`;
+
+function syncIdCountersFromFlow(nodes: Node[], edges: Edge[]) {
+  let nextNode = 0;
+  for (const n of nodes) {
+    const m = /^node_(\d+)$/.exec(n.id);
+    if (m) nextNode = Math.max(nextNode, Number(m[1]) + 1);
+  }
+  id = Math.max(id, nextNode);
+  let nextEdge = 0;
+  for (const e of edges) {
+    const m = /^edge_(\d+)$/.exec(e.id);
+    if (m) nextEdge = Math.max(nextEdge, Number(m[1]) + 1);
+  }
+  edgeId = Math.max(edgeId, nextEdge);
+}
+
+type Clipboard = { nodes: Node[]; edges: Edge[] };
+
+function isTextLikeFocus(): boolean {
+  const el = document.activeElement;
+  if (!el || !(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable) return true;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+function DnDFlow({ consent }: { consent: FunctionalConsent }) {
   const reactFlowWrapper = useRef(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const clipboardRef = useRef<Clipboard | null>(null);
+  const [initialBoard] = useState(() => {
+    if (consent !== 'granted') return null;
+    const data = loadPersistedBoard();
+    if (data?.nodes.length) syncIdCountersFromFlow(data.nodes, data.edges);
+    return data;
+  });
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialBoard?.nodes ?? []);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialBoard?.edges ?? []);
+  const { screenToFlowPosition, getNodes, getEdges, toObject } = useReactFlow();
   const [type] = useDnD();
+
+  useEffect(() => {
+    if (consent !== 'granted') return;
+    const t = window.setTimeout(() => {
+      savePersistedBoard(toObject());
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [nodes, edges, consent, toObject]);
+
+  const hasRestoredBoard = Boolean(initialBoard?.nodes.length);
+  const defaultViewport = hasRestoredBoard ? initialBoard!.viewport : undefined;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isTextLikeFocus()) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'c') {
+        const selected = getNodes().filter((n) => n.selected);
+        if (selected.length === 0) return;
+        e.preventDefault();
+        const ids = new Set(selected.map((n) => n.id));
+        const internal = getEdges().filter(
+          (ed) => ids.has(ed.source) && ids.has(ed.target),
+        );
+        clipboardRef.current = {
+          nodes: selected.map((n) => ({
+            ...n,
+            position: { ...n.position },
+            data:
+              typeof n.data === 'object' && n.data !== null
+                ? { ...(n.data as object) }
+                : n.data,
+          })),
+          edges: internal.map((ed) => ({ ...ed })),
+        };
+        return;
+      }
+
+      if (mod && e.key === 'v') {
+        const clip = clipboardRef.current;
+        if (!clip || clip.nodes.length === 0) return;
+        e.preventDefault();
+
+        const offset = 24;
+        const idMap: Record<string, string> = {};
+        for (const n of clip.nodes) {
+          idMap[n.id] = getId();
+        }
+
+        const newNodes: Node[] = clip.nodes.map((n) => ({
+          ...n,
+          id: idMap[n.id],
+          selected: false,
+          position: {
+            x: n.position.x + offset,
+            y: n.position.y + offset,
+          },
+          data:
+            typeof n.data === 'object' && n.data !== null
+              ? { ...(n.data as object) }
+              : n.data,
+        }));
+
+        const newEdges: Edge[] = clip.edges.map((ed) => ({
+          ...ed,
+          id: getEdgeId(),
+          source: idMap[ed.source]!,
+          target: idMap[ed.target]!,
+          selected: false,
+        }));
+
+        setNodes((nds) => nds.concat(newNodes));
+        setEdges((eds) => eds.concat(newEdges));
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [getNodes, getEdges, setNodes, setEdges]);
 
   const onConnect: OnConnect = useCallback(
     (params) =>
@@ -89,11 +216,11 @@ function DnDFlow() {
         y: event.clientY,
       });
 
-      const newNode = {
+      const newNode: Node = {
         id: getId(),
         type,
         position,
-        data: defaultData[type] ?? {},
+        data: (defaultData[type] ?? {}) as Record<string, unknown>,
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -114,7 +241,11 @@ function DnDFlow() {
           onConnect={onConnect}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          fitView
+          selectionOnDrag
+          panOnDrag={[1, 2]}
+          deleteKeyCode={['Backspace', 'Delete']}
+          defaultViewport={defaultViewport}
+          fitView={!hasRestoredBoard}
         >
           <Controls />
           <Background />
@@ -125,10 +256,25 @@ function DnDFlow() {
 }
 
 export default function App() {
+  const [consent, setConsent] = useState<FunctionalConsent>(() => readFunctionalConsent());
+
   return (
     <ReactFlowProvider>
       <DnDProvider>
-        <DnDFlow />
+        <DnDFlow consent={consent} />
+        {consent === 'unknown' ? (
+          <FunctionalCookieBanner
+            onAccept={() => {
+              setFunctionalConsentCookie(true);
+              setConsent('granted');
+            }}
+            onDecline={() => {
+              setFunctionalConsentCookie(false);
+              clearPersistedBoard();
+              setConsent('denied');
+            }}
+          />
+        ) : null}
       </DnDProvider>
     </ReactFlowProvider>
   );
