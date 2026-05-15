@@ -5,6 +5,8 @@ const nodes = [
   { type: 'xorNode',        label: 'XOR' },
   { type: 'andNode',        label: 'AND' },
   { type: 'rotateLeftNode', label: 'Rotate Left' },
+  { type: 'bitsToBytesNode', label: 'Bits → Bytes' },
+  { type: 'join32Node',     label: 'Join 4×32' },
   { type: 'resultNode',     label: 'Result' },
 ];
 

@@ -30,6 +30,8 @@ import BinaryNode from './inputs/binary';
 import XorNode from './operations/xor';
 import AndNode from './operations/and';
 import RotateLeftNode from './operations/rotate-left';
+import BitsToBytesNode from './operations/bits-to-bytes';
+import Join32Node from './operations/join-32';
 import ResultNode from './result/result';
 
 
@@ -38,6 +40,8 @@ const nodeTypes = {
   xorNode: XorNode,
   andNode: AndNode,
   rotateLeftNode: RotateLeftNode,
+  bitsToBytesNode: BitsToBytesNode,
+  join32Node: Join32Node,
   resultNode: ResultNode,
 };
 
@@ -47,6 +51,8 @@ const defaultData: Record<string, object> = {
   xorNode:        { result: null },
   andNode:        { result: null },
   rotateLeftNode: { result: null },
+  bitsToBytesNode: { result: null },
+  join32Node:     { result: null },
   resultNode:     {},
 };
 
@@ -180,12 +186,24 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
     (params) =>
       setEdges((eds) => {
         const targetNode = nodes.find((n) => n.id === params.target);
-        const singleInputTypes = ['resultNode', 'xorNode', 'andNode', 'rotateLeftNode'];
+        const singleInputTypes = [
+          'resultNode',
+          'xorNode',
+          'andNode',
+          'rotateLeftNode',
+          'bitsToBytesNode',
+          'join32Node',
+        ];
   
         const isSingleInput = singleInputTypes.includes(targetNode?.type ?? '');
   
         // for nodes with named handles (a/b), only boot the edge on the same handle
-        const hasNamedHandles = ['xorNode', 'andNode', 'rotateLeftNode'].includes(targetNode?.type ?? '');
+        const hasNamedHandles = [
+          'xorNode',
+          'andNode',
+          'rotateLeftNode',
+          'join32Node',
+        ].includes(targetNode?.type ?? '');
   
         const filtered = isSingleInput
           ? eds.filter((e) => {
