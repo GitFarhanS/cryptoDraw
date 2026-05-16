@@ -1,29 +1,21 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   Handle,
   Position,
   useNodeConnections,
   useNodesData,
-  useReactFlow,
   type NodeProps,
   type Node,
 } from '@xyflow/react';
+import { useSyncNodeResult } from '../flow/hooks';
+import { bitsFromUpstreamData } from '../variable/bits';
 
 type Join32Data = { result: string | null };
 
 const HANDLES = ['w0', 'w1', 'w2', 'w3'] as const;
 const HANDLE_LEFT = ['14%', '38%', '62%', '86%'] as const;
 
-function bitsFromUpstreamData(data: unknown): string {
-  if (!data || typeof data !== 'object') return '';
-  const d = data as { binary?: string; result?: string | null };
-  if (typeof d.binary === 'string') return d.binary;
-  if (typeof d.result === 'string') return d.result;
-  return '';
-}
-
 function Join32Node({ id }: NodeProps<Node<Join32Data>>) {
-  const { updateNodeData } = useReactFlow();
   const connections = useNodeConnections({ handleType: 'target' });
 
   const orderedSources = useMemo(
@@ -45,9 +37,7 @@ function Join32Node({ id }: NodeProps<Node<Join32Data>>) {
     return ok ? chunks.join('') : null;
   }, [allWired, nodesData]);
 
-  useEffect(() => {
-    updateNodeData(id, { result });
-  }, [result]);
+  useSyncNodeResult(id, result);
 
   const status = useMemo(() => {
     if (!allWired) {

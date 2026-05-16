@@ -40,25 +40,26 @@ function BinaryNode({ id, data }: NodeProps<Node<{ binary: string }>>) {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
           padding: '8px',
+          cursor: 'grab',
           boxSizing: 'border-box',
         }}>
-          <div>Binary</div>
+          <div style={{ textAlign: 'center', marginBottom: 6, fontWeight: 600 }}>Binary</div>
           <textarea
             onChange={forceBinary}
             value={data.binary}
-            className="xy-theme__input"
+            className="xy-theme__input nodrag"
             style={{
+                flex: 1,
+                minHeight: 0,
                 width: '100%',
-                height: '100%',
                 boxSizing: 'border-box',
                 resize: 'none',
                 wordBreak: 'break-all',
                 overflowWrap: 'break-word',
-                overflow: 'hidden',
+                overflow: 'auto',
                 whiteSpace: 'pre-wrap',
+                cursor: 'text',
             }}
             />
         </div>

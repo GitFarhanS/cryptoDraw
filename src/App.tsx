@@ -15,7 +15,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import Sidebar from './sidebar';
-import { DnDProvider, useDnD } from './DnDContext';
+import { DnDProvider, useDnD, REACTFLOW_DRAG_TYPE } from './DnDContext';
 import FunctionalCookieBanner from './FunctionalCookieBanner';
 import {
   type FunctionalConsent,
@@ -27,54 +27,75 @@ import {
 } from './functionalStorage';
 
 import BinaryNode from './inputs/binary';
+import MNode from './inputs/m';
+import { lookupM } from './constants/m';
 import XorNode from './operations/xor';
 import AndNode from './operations/and';
 import RotateLeftNode from './operations/rotate-left';
 import BitsToBytesNode from './operations/bits-to-bytes';
 import Join32Node from './operations/join-32';
+import { S1Node, S2Node } from './operations/s-box';
 import ResultNode from './result/result';
+import {
+  Bits8Node,
+  Bits16Node,
+  Bits64Node,
+  Bits128Node,
+} from './variable/variable-node';
+import { VariableStoreProvider } from './variable/VariableStore';
 
 
 const nodeTypes = {
   binaryNode: BinaryNode,
+  mNode: MNode,
   xorNode: XorNode,
   andNode: AndNode,
   rotateLeftNode: RotateLeftNode,
   bitsToBytesNode: BitsToBytesNode,
   join32Node: Join32Node,
+  s1Node: S1Node,
+  s2Node: S2Node,
   resultNode: ResultNode,
+  bits16Node: Bits16Node,
+  bits8Node: Bits8Node,
+  bits64Node: Bits64Node,
+  bits128Node: Bits128Node,
 };
 
 // default data per node type when dropped
 const defaultData: Record<string, object> = {
   binaryNode:     { binary: '0' },
+  mNode:          lookupM(0),
   xorNode:        { result: null },
   andNode:        { result: null },
   rotateLeftNode: { result: null },
   bitsToBytesNode: { result: null },
   join32Node:     { result: null },
+  s1Node:         { result: null },
+  s2Node:         { result: null },
   resultNode:     {},
+  bits16Node:     { name: 'v1', result: null },
+  bits8Node:      { name: 'v1', result: null },
+  bits64Node:     { name: 'v1', result: null },
+  bits128Node:    { name: 'v1', result: null },
 };
 
-let id = 0;
-const getId = () => `node_${id++}`;
-
-let edgeId = 0;
-const getEdgeId = () => `edge_${edgeId++}`;
-
-function syncIdCountersFromFlow(nodes: Node[], edges: Edge[]) {
-  let nextNode = 0;
-  for (const n of nodes) {
-    const m = /^node_(\d+)$/.exec(n.id);
-    if (m) nextNode = Math.max(nextNode, Number(m[1]) + 1);
+function nextNumericIds(
+  prefix: 'node' | 'edge',
+  items: { id: string }[],
+  count: number,
+): string[] {
+  let max = -1;
+  const re = new RegExp(`^${prefix}_(\\d+)$`);
+  for (const item of items) {
+    const m = re.exec(item.id);
+    if (m) max = Math.max(max, Number(m[1]));
   }
-  id = Math.max(id, nextNode);
-  let nextEdge = 0;
-  for (const e of edges) {
-    const m = /^edge_(\d+)$/.exec(e.id);
-    if (m) nextEdge = Math.max(nextEdge, Number(m[1]) + 1);
-  }
-  edgeId = Math.max(edgeId, nextEdge);
+  return Array.from({ length: count }, (_, i) => `${prefix}_${max + 1 + i}`);
+}
+
+function nextNodeId(nodes: Node[]): string {
+  return nextNumericIds('node', nodes, 1)[0]!;
 }
 
 type Clipboard = { nodes: Node[]; edges: Edge[] };
@@ -92,15 +113,13 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
   const clipboardRef = useRef<Clipboard | null>(null);
   const [initialBoard] = useState(() => {
     if (consent !== 'granted') return null;
-    const data = loadPersistedBoard();
-    if (data?.nodes.length) syncIdCountersFromFlow(data.nodes, data.edges);
-    return data;
+    return loadPersistedBoard();
   });
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialBoard?.nodes ?? []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialBoard?.edges ?? []);
   const { screenToFlowPosition, getNodes, getEdges, toObject } = useReactFlow();
-  const [type] = useDnD();
+  const { type, setType, isDraggingFromSidebar } = useDnD();
 
   useEffect(() => {
     if (consent !== 'granted') return;
@@ -146,14 +165,16 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
         e.preventDefault();
 
         const offset = 24;
-        const idMap: Record<string, string> = {};
-        for (const n of clip.nodes) {
-          idMap[n.id] = getId();
-        }
+        const nds = getNodes();
+        const eds = getEdges();
+        const nodeIds = nextNumericIds('node', nds, clip.nodes.length);
+        const idMap = Object.fromEntries(
+          clip.nodes.map((n, i) => [n.id, nodeIds[i]!]),
+        );
 
         const newNodes: Node[] = clip.nodes.map((n) => ({
           ...n,
-          id: idMap[n.id],
+          id: idMap[n.id]!,
           selected: false,
           position: {
             x: n.position.x + offset,
@@ -165,16 +186,17 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
               : n.data,
         }));
 
-        const newEdges: Edge[] = clip.edges.map((ed) => ({
+        const edgeIds = nextNumericIds('edge', eds, clip.edges.length);
+        const newEdges: Edge[] = clip.edges.map((ed, i) => ({
           ...ed,
-          id: getEdgeId(),
+          id: edgeIds[i]!,
           source: idMap[ed.source]!,
           target: idMap[ed.target]!,
           selected: false,
         }));
 
-        setNodes((nds) => nds.concat(newNodes));
-        setEdges((eds) => eds.concat(newEdges));
+        setNodes(nds.concat(newNodes));
+        setEdges(eds.concat(newEdges));
       }
     };
 
@@ -193,6 +215,12 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
           'rotateLeftNode',
           'bitsToBytesNode',
           'join32Node',
+          's1Node',
+          's2Node',
+          'bits16Node',
+          'bits8Node',
+          'bits64Node',
+          'bits128Node',
         ];
   
         const isSingleInput = singleInputTypes.includes(targetNode?.type ?? '');
@@ -203,6 +231,7 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
           'andNode',
           'rotateLeftNode',
           'join32Node',
+          'mNode',
         ].includes(targetNode?.type ?? '');
   
         const filtered = isSingleInput
@@ -227,23 +256,26 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
     (event: React.DragEvent) => {
       event.preventDefault();
 
-      if (!type) return;
+      const droppedType =
+        event.dataTransfer.getData(REACTFLOW_DRAG_TYPE) || type;
+      if (!droppedType || !defaultData[droppedType]) return;
 
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
 
-      const newNode: Node = {
-        id: getId(),
-        type,
-        position,
-        data: (defaultData[type] ?? {}) as Record<string, unknown>,
-      };
-
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) =>
+        nds.concat({
+          id: nextNodeId(nds),
+          type: droppedType,
+          position,
+          data: (defaultData[droppedType] ?? {}) as Record<string, unknown>,
+        }),
+      );
+      setType(null);
     },
-    [screenToFlowPosition, type],
+    [screenToFlowPosition, type, setType, setNodes],
   );
 
   return (
@@ -259,7 +291,7 @@ function DnDFlow({ consent }: { consent: FunctionalConsent }) {
           onConnect={onConnect}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          selectionOnDrag
+          selectionOnDrag={!isDraggingFromSidebar}
           panOnDrag={[1, 2]}
           deleteKeyCode={['Backspace', 'Delete']}
           defaultViewport={defaultViewport}
@@ -279,7 +311,9 @@ export default function App() {
   return (
     <ReactFlowProvider>
       <DnDProvider>
-        <DnDFlow consent={consent} />
+        <VariableStoreProvider>
+          <DnDFlow consent={consent} />
+        </VariableStoreProvider>
         {consent === 'unknown' ? (
           <FunctionalCookieBanner
             onAccept={() => {

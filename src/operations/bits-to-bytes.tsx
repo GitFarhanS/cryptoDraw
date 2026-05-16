@@ -1,23 +1,16 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   Handle,
   Position,
   useNodeConnections,
   useNodesData,
-  useReactFlow,
   type NodeProps,
   type Node,
 } from '@xyflow/react';
+import { useSyncNodeResult } from '../flow/hooks';
+import { bitsFromUpstreamData } from '../variable/bits';
 
 type BitsToBytesData = { result: string | null };
-
-function bitsFromUpstreamData(data: unknown): string {
-  if (!data || typeof data !== 'object') return '';
-  const d = data as { binary?: string; result?: string | null };
-  if (typeof d.binary === 'string') return d.binary;
-  if (typeof d.result === 'string') return d.result;
-  return '';
-}
 
 function tryParse128(cleaned: string): { bits: string; bytes: number[] } | null {
   if (cleaned.length !== 128 || !/^[01]+$/.test(cleaned)) return null;
@@ -29,7 +22,6 @@ function tryParse128(cleaned: string): { bits: string; bytes: number[] } | null 
 }
 
 function BitsToBytesNode({ id }: NodeProps<Node<BitsToBytesData>>) {
-  const { updateNodeData } = useReactFlow();
   const connections = useNodeConnections({ handleType: 'target' });
   const nodesData = useNodesData<Node>(connections.map((c) => c.source));
 
@@ -52,10 +44,7 @@ function BitsToBytesNode({ id }: NodeProps<Node<BitsToBytesData>>) {
   }, [connections.length, nodesData]);
 
   const result = parsed?.bits ?? null;
-
-  useEffect(() => {
-    updateNodeData(id, { result });
-  }, [result]);
+  useSyncNodeResult(id, result);
 
   const body = useMemo(() => {
     if (status === 'need_wire') {
@@ -100,11 +89,8 @@ function BitsToBytesNode({ id }: NodeProps<Node<BitsToBytesData>>) {
   return (
     <div style={{ minWidth: 200, textAlign: 'left' }}>
       <Handle type="target" position={Position.Top} />
-
       <div style={{ textAlign: 'center', marginBottom: 6 }}>Bits → Bytes</div>
-
       {body}
-
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
