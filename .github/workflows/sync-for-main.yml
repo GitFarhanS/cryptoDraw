@@ -23,15 +23,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin main
           git fetch origin cryptodraw-for-main || true
 
           if git show-ref --verify --quiet refs/remotes/origin/cryptodraw-for-main; then
             git checkout -B cryptodraw-for-main origin/cryptodraw-for-main
           else
+            git fetch origin main
             git checkout -B cryptodraw-for-main origin/main
           fi
 
+          # True mirror: drop every tracked file from the deploy branch, then
+          # restore the exact tree from cryptodraw-raw (overlay-only sync left
+          # stale files from main and broke Netlify builds).
+          git rm -rf --quiet . 2>/dev/null || true
           git checkout "${GITHUB_SHA}" -- .
           git add -A
 
